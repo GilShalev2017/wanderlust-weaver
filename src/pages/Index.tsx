@@ -1,16 +1,111 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { motion } from "framer-motion";
+import heroImage from "@/assets/hero-japan.jpg";
+import TripInput from "@/components/TripInput";
+import AgentProgress, { type AgentStage } from "@/components/AgentProgress";
+import ItineraryDisplay from "@/components/ItineraryDisplay";
+import { runTravelPipeline } from "@/lib/agents";
+import { toast } from "sonner";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type AppState = "input" | "processing" | "done";
+
+export default function Index() {
+  const [state, setState] = useState<AppState>("input");
+  const [stage, setStage] = useState<AgentStage>("research");
+  const [itinerary, setItinerary] = useState("");
+
+  const handleSubmit = async (request: string) => {
+    setState("processing");
+    setItinerary("");
+    setStage("research");
+
+    try {
+      await runTravelPipeline(request, {
+        onStageChange: setStage,
+        onStream: (chunk) => setItinerary((prev) => prev + chunk),
+        onDone: () => setState("done"),
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
+      setState("input");
+    }
+  };
+
+  const handleReset = () => {
+    setState("input");
+    setItinerary("");
+    setStage("research");
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      {/* Hero */}
+      <header className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={heroImage}
+            alt="Travel landscape"
+            className="w-full h-full object-cover opacity-30"
+            width={1920}
+            height={1080}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 pt-16 pb-12 md:pt-24 md:pb-20">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-10"
+          >
+            <div className="inline-flex items-center gap-2 text-primary font-body text-sm font-medium tracking-wider uppercase mb-4">
+              <span className="w-8 h-px bg-primary" />
+              AI-Powered Multi-Agent
+              <span className="w-8 h-px bg-primary" />
+            </div>
+            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight mb-4">
+              Travel Planner
+            </h1>
+            <p className="font-body text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
+              Four specialized AI agents collaborate to craft your perfect itinerary — from research to final review.
+            </p>
+          </motion.div>
+
+          {state === "input" && <TripInput onSubmit={handleSubmit} isLoading={false} />}
+          {state === "processing" && (
+            <>
+              <TripInput onSubmit={() => {}} isLoading={true} />
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* Agent Progress + Itinerary */}
+      <main className="container mx-auto px-4 pb-20">
+        {(state === "processing" || state === "done") && (
+          <>
+            <AgentProgress currentStage={stage} />
+            {itinerary && (
+              <ItineraryDisplay
+                content={itinerary}
+                isStreaming={state === "processing"}
+                onReset={handleReset}
+              />
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-6">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm font-body text-muted-foreground">
+            Built with a multi-agent pipeline: Research → Planning → Detail → Review
+          </p>
+        </div>
+      </footer>
     </div>
   );
-};
-
-const Index = PlaceholderIndex;
-
-export default Index;
+}
