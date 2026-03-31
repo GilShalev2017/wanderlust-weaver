@@ -1,99 +1,3 @@
-// import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-// const corsHeaders = {
-//   "Access-Control-Allow-Origin": "*",
-//   "Access-Control-Allow-Headers":
-//     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-// };
-
-// serve(async (req) => {
-//   if (req.method === "OPTIONS")
-//     return new Response(null, { headers: corsHeaders });
-
-//   try {
-//     const { tripRequest } = await req.json();
-//     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-//     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-//     const response = await fetch(
-//       "https://ai.gateway.lovable.dev/v1/chat/completions",
-//       {
-//         method: "POST",
-//         headers: {
-//           Authorization: `Bearer ${LOVABLE_API_KEY}`,
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           model: "google/gemini-2.5-flash",
-//           messages: [
-//             {
-//               role: "system",
-//               content: `You are a Travel Research Agent. Your job is to analyze a trip request and produce structured research output.
-
-// CRITICAL: Your response MUST begin with a metadata block in the following format.
-// Choose the first major city or primary destination you intend to recommend as the 'anchor'.
-
-// [METADATA]
-// {
-//   "primary_city": "City Name",
-//   "country": "Country Name",
-//   "country_code": "ISO 2-letter code"
-// }
-// [/METADATA]
-
-// Given a trip request, output a JSON-like research brief covering:
-// 1. **Destinations**: Best regions/cities to visit given the traveler's interests and timeframe
-// 2. **Season & Weather**: What to expect for the travel dates
-// 3. **Traveler Profile**: Key interests, pace preference, budget level
-// 4. **Cultural Notes**: Important customs, tips, or considerations
-// 5. **Hidden Gems**: Off-the-beaten-path spots matching their interests
-// 6. **Logistics**: Visa needs, transport options, currency tips
-
-// Be thorough but concise. Focus on actionable insights the planning agent can use.`,
-//             },
-//             { role: "user", content: tripRequest },
-//           ],
-//         }),
-//       },
-//     );
-
-//     if (!response.ok) {
-//       const t = await response.text();
-//       throw new Error(`AI gateway error ${response.status}: ${t}`);
-//     }
-
-//     const data = await response.json();
-//     const result = data.choices?.[0]?.message?.content || "";
-
-//     return new Response(JSON.stringify({ result }), {
-//       headers: { ...corsHeaders, "Content-Type": "application/json" },
-//     });
-//   } catch (e) {
-//     console.error("Research agent error:", e);
-//     return new Response(
-//       JSON.stringify({
-//         error: e instanceof Error ? e.message : "Unknown error",
-//       }),
-//       {
-//         status: 500,
-//         headers: { ...corsHeaders, "Content-Type": "application/json" },
-//       },
-//     );
-//   }
-// });
-
-//   //             content: `You are a Travel Research Agent. Your job is to analyze a trip request and produce structured research output.
-
-//               // Given a trip request, output a JSON-like research brief covering:
-//               // 1. **Destinations**: Best regions/cities to visit given the traveler's interests and timeframe
-//               // 2. **Season & Weather**: What to expect for the travel dates
-//               // 3. **Traveler Profile**: Key interests, pace preference, budget level
-//               // 4. **Cultural Notes**: Important customs, tips, or considerations
-//               // 5. **Hidden Gems**: Off-the-beaten-path spots matching their interests
-//               // 6. **Logistics**: Visa needs, transport options, currency tips
-
-//               // Be thorough but concise. Focus on actionable insights the planning agent can use.`,
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -103,11 +7,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Version tracker to verify deployment
+  const DEPLOY_VERSION = "1.0.3-ANCHOR-FIX"; 
+
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
   try {
     const { tripRequest } = await req.json();
+    console.log(`[${DEPLOY_VERSION}] Processing request:`, tripRequest);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -126,21 +35,13 @@ serve(async (req) => {
               role: "system",
               content: `You are a Travel Research Assistant. 
 
-CRITICAL: You MUST start your response with this exact text format on the very first line. Do not use markdown code blocks for this line.
-ANCHOR: City Name, Country Name, ISO Country Code
+CRITICAL: YOU MUST START YOUR RESPONSE WITH THIS EXACT LINE. DO NOT USE MARKDOWN.
+ANCHOR: City Name, Country Name, ISO-Code
 
 Example:
 ANCHOR: Tel Aviv, Israel, IL
 
-Immediately after that line, provide a structured research brief in JSON format covering:
-1. **Destinations**: Best regions/cities.
-2. **Season & Weather**: What to expect.
-3. **Traveler Profile**: Interests and pace.
-4. **Cultural Notes**: Customs and tipping.
-5. **Hidden Gems**: 3-5 specific off-the-beaten-path spots.
-6. **Logistics**: Transport and currency.
-
-Ensure the JSON is well-formatted and detailed.`,
+After that line, provide a detailed research brief in JSON format.`,
             },
             { role: "user", content: tripRequest },
           ],
@@ -156,14 +57,16 @@ Ensure the JSON is well-formatted and detailed.`,
     const data = await response.json();
     const result = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ result }), {
+    // We return the version in the response headers/body for easy debugging
+    return new Response(JSON.stringify({ result, debug_version: DEPLOY_VERSION }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Research agent error:", e);
+    console.error(`[${DEPLOY_VERSION}] Error:`, e);
     return new Response(
       JSON.stringify({
         error: e instanceof Error ? e.message : "Unknown error",
+        debug_version: DEPLOY_VERSION
       }),
       {
         status: 500,
