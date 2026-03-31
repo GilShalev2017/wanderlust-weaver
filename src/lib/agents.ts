@@ -138,23 +138,23 @@ export async function runTravelPipeline(
   console.log("[Agents] Raw Research Result:", research);
 
   // --- NEW: EXTRACT METADATA ---
-  let locationContext = undefined;
-  const metadataMatch = research.match(/\[METADATA\]([\s\S]*?)\[\/METADATA\]/);
+  // let locationContext = undefined;
+  // const metadataMatch = research.match(/\[METADATA\]([\s\S]*?)\[\/METADATA\]/);
 
-  if (metadataMatch) {
-    try {
-      locationContext = JSON.parse(metadataMatch[1].trim());
+  // if (metadataMatch) {
+  //   try {
+  //     locationContext = JSON.parse(metadataMatch[1].trim());
     
-      console.log("[Agents] Metadata successfully parsed:", locationContext); // LOG SUCCESS
+  //     console.log("[Agents] Metadata successfully parsed:", locationContext); // LOG SUCCESS
 
-      // Clean the research text so the metadata block isn't passed to other agents or UI
-      research = research
-        .replace(/\[METADATA\][\s\S]*?\[\/METADATA\]/, "")
-        .trim();
-    } catch (e) {
-      console.error("Failed to parse metadata", e);
-    }
-  }
+  //     // Clean the research text so the metadata block isn't passed to other agents or UI
+  //     research = research
+  //       .replace(/\[METADATA\][\s\S]*?\[\/METADATA\]/, "")
+  //       .trim();
+  //   } catch (e) {
+  //     console.error("Failed to parse metadata", e);
+  //   }
+  // }
 
   // Stage 2: Planning
   callbacks.onStageChange("planning");
@@ -214,9 +214,9 @@ export async function runTravelPipeline(
     }
   }
 
-  console.log("[Agents] Pipeline complete. Sending context to onDone:", locationContext);
+  //console.log("[Agents] Pipeline complete. Sending context to onDone:", locationContext);
   
   callbacks.onStageChange("complete");
   // Pass the extracted location context back to the UI to update the map
-  callbacks.onDone(fullFinalContent, locationContext);
+  callbacks.onDone(fullFinalContent);//, locationContext);
 }
