@@ -56,37 +56,47 @@ function extractLocations(markdown: string): string[] {
   const locations: string[] = [];
   const lines = markdown.split("\n");
 
+  // Strategy 1: Look for "Location/City:" lines in the itinerary
   for (const line of lines) {
-    // Match any header containing "Day X" followed by location info
-    const dayMatch = line.match(/^#{1,4}\s*[^\n]*Day\s+\d+[^a-zA-Z]*(.+)/i);
-    if (dayMatch) {
-      // Clean up the location part
-      let loc = dayMatch[1]
-        .replace(/[*_#`]/g, "")
-        .replace(/^\s*[:\s–—-]+\s*/, "")
-        .replace(/\(.*?\)/g, "")
-        .trim();
-      // Remove trailing punctuation
-      loc = loc.replace(/[,;.!]+$/, "").trim();
-      // Remove leading emoji
-      loc = loc.replace(/^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\s]+/u, "").trim();
-      if (loc && loc.length > 1 && loc.length < 80) locations.push(loc);
+    const locMatch = line.match(/\*?\*?Location\/City\*?\*?:\s*(.+)/i);
+    if (locMatch) {
+      const parts = locMatch[1].replace(/[*_]/g, "").split(/[/,&]/).map(s => s.trim()).filter(s => s.length > 1);
+      for (const p of parts) {
+        if (p.length < 60) locations.push(p);
+      }
     }
   }
 
-  // Fallback: if no day-based locations found, try to find city/region names from bold text
+  // Strategy 2: Extract bold place names that look like real locations (capitalized, short)
   if (locations.length === 0) {
     const boldPlaces = markdown.match(/\*\*([A-Z][a-zA-Zà-ÿ\s,'-]+)\*\*/g);
     if (boldPlaces) {
-      for (const bp of boldPlaces.slice(0, 12)) {
+      for (const bp of boldPlaces.slice(0, 15)) {
         const clean = bp.replace(/\*\*/g, "").trim();
-        if (clean.length > 2 && clean.length < 50 && !clean.match(/^(Day|Budget|Tips|Pack|Overview|Summary|Total|Note)/i)) {
+        if (
+          clean.length > 2 && clean.length < 40 &&
+          !clean.match(/^(Day|Budget|Tips|Pack|Overview|Summary|Total|Note|Morning|Afternoon|Evening|Travel|Location|Traveler|Important|Practical|Why|Off)/i)
+        ) {
           locations.push(clean);
         }
       }
     }
   }
 
+  // Strategy 3: Day headers — extract just the place-like part
+  if (locations.length === 0) {
+    for (const line of lines) {
+      const dayMatch = line.match(/^#{1,4}\s*\*?\*?Day\s+\d+[^a-zA-Z]*(.+)/i);
+      if (dayMatch) {
+        let loc = dayMatch[1].replace(/[*_#`]/g, "").replace(/^\s*[:\s–—-]+\s*/, "").trim();
+        // Try to extract a known place name pattern (before &, comma, or parenthetical)
+        const firstPart = loc.split(/[&,]/)[0].trim();
+        if (firstPart.length > 2 && firstPart.length < 50) locations.push(firstPart);
+      }
+    }
+  }
+
+  // Deduplicate
   return [...new Set(locations)];
 }
 
