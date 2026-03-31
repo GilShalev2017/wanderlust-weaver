@@ -119,6 +119,7 @@ export default function ItineraryMap({ content, isStreaming }: ItineraryMapProps
     if (isStreaming) return;
 
     const locations = extractLocations(content);
+    console.log("[ItineraryMap] Extracted locations:", locations);
     if (locations.length === 0) return;
 
     const newLocations = locations.filter((l) => !geocodedRef.current.has(l));
@@ -129,6 +130,7 @@ export default function ItineraryMap({ content, isStreaming }: ItineraryMapProps
       for (const loc of newLocations) {
         geocodedRef.current.add(loc);
         const coords = await geocode(loc);
+        console.log("[ItineraryMap] Geocoded", loc, "→", coords);
         if (coords) {
           newPoints.push({ name: loc, ...coords, day: `Day ${locations.indexOf(loc) + 1}` });
         }
