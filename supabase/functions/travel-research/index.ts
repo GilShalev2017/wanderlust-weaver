@@ -7,15 +7,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // New Version: 1.0.4-FORCE-ANCHOR
-  const DEPLOY_VERSION = "1.0.4-FORCE-ANCHOR"; 
+  // Version 1.0.5: Forced Pattern Matching
+  const DEPLOY_VERSION = "1.0.5-PATTERN-MATCH"; 
 
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
   try {
     const { tripRequest } = await req.json();
-    console.log(`[${DEPLOY_VERSION}] Processing:`, tripRequest);
+    console.log(`[${DEPLOY_VERSION}] Processing request for:`, tripRequest);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -33,21 +33,24 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "You are a professional travel researcher. You provide data in two parts: a one-line location header, followed by a JSON block.",
+              content: "You are a professional travel researcher. You always provide a plain-text anchor line before providing a JSON research block.",
             },
             { 
               role: "user", 
-              content: `Research this trip: "${tripRequest}"
+              content: `Task: Research "${tripRequest}"
               
-              STRICT OUTPUT FORMAT RULES:
-              1. Your response MUST begin with a single line: "ANCHOR: City, Country, ISO"
-              2. Immediately after that line, provide a code block containing the research JSON.
-              3. DO NOT include any introductory text like "Sure, here is your research".
+              STRICT STRUCTURAL RULES:
+              1. Your response MUST begin with exactly one line: "ANCHOR: [City], [Country], [ISO Code]"
+              2. Immediately after that line, provide the research data inside a markdown JSON code block.
+              3. No intro text, no conversational filler.
               
-              Example start:
-              ANCHOR: Tokyo, Japan, JP
+              ---
+              EXPECTED START OF RESPONSE:
+              ANCHOR: London, United Kingdom, GB
               \`\`\`json
-              { ... }
+              {
+                "destinations": ...
+              }
               \`\`\`` 
             },
           ],
