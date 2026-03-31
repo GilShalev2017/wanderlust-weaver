@@ -7,15 +7,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Version tracker to verify deployment
-  const DEPLOY_VERSION = "1.0.3-ANCHOR-FIX"; 
+  // New Version: 1.0.4-FORCE-ANCHOR
+  const DEPLOY_VERSION = "1.0.4-FORCE-ANCHOR"; 
 
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
   try {
     const { tripRequest } = await req.json();
-    console.log(`[${DEPLOY_VERSION}] Processing request:`, tripRequest);
+    console.log(`[${DEPLOY_VERSION}] Processing:`, tripRequest);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -33,17 +33,23 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are a Travel Research Assistant. 
-
-CRITICAL: YOU MUST START YOUR RESPONSE WITH THIS EXACT LINE. DO NOT USE MARKDOWN.
-ANCHOR: City Name, Country Name, ISO-Code
-
-Example:
-ANCHOR: Tel Aviv, Israel, IL
-
-After that line, provide a detailed research brief in JSON format.`,
+              content: "You are a professional travel researcher. You provide data in two parts: a one-line location header, followed by a JSON block.",
             },
-            { role: "user", content: tripRequest },
+            { 
+              role: "user", 
+              content: `Research this trip: "${tripRequest}"
+              
+              STRICT OUTPUT FORMAT RULES:
+              1. Your response MUST begin with a single line: "ANCHOR: City, Country, ISO"
+              2. Immediately after that line, provide a code block containing the research JSON.
+              3. DO NOT include any introductory text like "Sure, here is your research".
+              
+              Example start:
+              ANCHOR: Tokyo, Japan, JP
+              \`\`\`json
+              { ... }
+              \`\`\`` 
+            },
           ],
         }),
       },
@@ -57,7 +63,6 @@ After that line, provide a detailed research brief in JSON format.`,
     const data = await response.json();
     const result = data.choices?.[0]?.message?.content || "";
 
-    // We return the version in the response headers/body for easy debugging
     return new Response(JSON.stringify({ result, debug_version: DEPLOY_VERSION }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
