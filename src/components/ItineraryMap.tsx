@@ -57,21 +57,32 @@ function extractLocations(markdown: string): string[] {
   const lines = markdown.split("\n");
 
   for (const line of lines) {
-    // Match "Day X: Location" or "Day X – Location" patterns
-    const dayMatch = line.match(/^#{1,3}\s*(?:📍|🏯|🗻|🌸|🎌|🏙|🌊|⛩|🍜|🚅|🗾)?\s*Day\s+\d+[:\s–—-]+(.+)/i);
+    // Match any header containing "Day X" followed by location info
+    const dayMatch = line.match(/^#{1,4}\s*[^\n]*Day\s+\d+[^a-zA-Z]*(.+)/i);
     if (dayMatch) {
-      const loc = dayMatch[1].replace(/[*_#`]/g, "").trim();
-      if (loc && loc.length > 1) locations.push(loc);
-      continue;
+      // Clean up the location part
+      let loc = dayMatch[1]
+        .replace(/[*_#`]/g, "")
+        .replace(/^\s*[:\s–—-]+\s*/, "")
+        .replace(/\(.*?\)/g, "")
+        .trim();
+      // Remove trailing punctuation
+      loc = loc.replace(/[,;.!]+$/, "").trim();
+      // Remove leading emoji
+      loc = loc.replace(/^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\s]+/u, "").trim();
+      if (loc && loc.length > 1 && loc.length < 80) locations.push(loc);
     }
-    // Match "### Location Name" style headers with location context
-    const h3Match = line.match(/^###\s+(.+)/);
-    if (h3Match) {
-      const text = h3Match[1].replace(/[*_#`]/g, "").trim();
-      // Only add if it looks like a location (contains city/area name indicators)
-      if (text.match(/Day\s+\d+/i)) {
-        const locPart = text.replace(/Day\s+\d+[:\s–—-]*/i, "").trim();
-        if (locPart && locPart.length > 1) locations.push(locPart);
+  }
+
+  // Fallback: if no day-based locations found, try to find city/region names from bold text
+  if (locations.length === 0) {
+    const boldPlaces = markdown.match(/\*\*([A-Z][a-zA-Zà-ÿ\s,'-]+)\*\*/g);
+    if (boldPlaces) {
+      for (const bp of boldPlaces.slice(0, 12)) {
+        const clean = bp.replace(/\*\*/g, "").trim();
+        if (clean.length > 2 && clean.length < 50 && !clean.match(/^(Day|Budget|Tips|Pack|Overview|Summary|Total|Note)/i)) {
+          locations.push(clean);
+        }
       }
     }
   }
