@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -16,6 +23,18 @@ interface GeoPoint {
   lat: number;
   lng: number;
   day?: string;
+}
+
+interface LocationContext {
+  primary_city: string;
+  country: string;
+  country_code: string;
+}
+
+interface ItineraryMapProps {
+  content: string;
+  isStreaming: boolean;
+  locationContext?: LocationContext;
 }
 
 function createDayIcon(dayNum: number) {
@@ -53,77 +72,64 @@ function FitBounds({ points }: { points: GeoPoint[] }) {
 }
 
 /**
- * Extract the primary destination city from the itinerary text.
+ * Extracts location names and qualifies them with geographic context
  */
-function extractPrimaryCity(markdown: string): string {
-  // Look for "Itinerary:" or title line with a city
-  const titleMatch = markdown.match(/(?:Itinerary|Trip).*?:\s*(.+)/i);
-  if (titleMatch) {
-    // Try to find a city name in the title (e.g. "3-Day Tel Aviv Itinerary")
-    const cityMatch = titleMatch[1].match(/([A-Z][a-zA-Zà-ÿ\s'-]+?)(?:\s+Itinerary|\s+Trip|\s*$)/i);
-    if (cityMatch) return cityMatch[1].trim();
-  }
-  // Fallback: look for the first h1/h2 mentioning a recognizable place
-  const h1Match = markdown.match(/^#{1,2}\s+.*?([A-Z][a-zA-Zà-ÿ\s'-]{2,25})\s+Itinerary/im);
-  if (h1Match) return h1Match[1].trim();
-  return "";
-}
-
-/**
- * Extract one location per day from day headers, qualified with the primary city.
- */
-function extractLocations(markdown: string): string[] {
-  const primaryCity = extractPrimaryCity(markdown);
+function extractLocations(markdown: string, context?: LocationContext): string[] {
   const locations: string[] = [];
   const lines = markdown.split("\n");
 
+  // Strategy: Extract "Location/City" lines or Day headers
   for (const line of lines) {
-    // Match day headers like "### Day 1 – Jaffa's Ancient Soul" or "### **Day 2 – Bauhaus, Beaches**"
-    const dayMatch = line.match(/^#{1,4}\s*\*?\*?\s*Day\s+\d+\s*[:\s–—-]+\s*(.+)/i);
-    if (dayMatch) {
-      let title = dayMatch[1].replace(/[*_#`]/g, "").trim();
-      // Remove trailing ** if any
-      title = title.replace(/\*+$/, "").trim();
+    const locMatch = line.match(/\*?\*?Location\/City\*?\*?:\s*(.+)/i);
+    const dayMatch = line.match(/^#{1,4}\s*\*?\*?Day\s+\d+[^a-zA-Z]*(.+)/i);
+    
+    let rawLoc = "";
+    if (locMatch) {
+      rawLoc = locMatch[1].replace(/[*_]/g, "").split(/[/,&]/)[0].trim();
+    } else if (dayMatch) {
+      rawLoc = dayMatch[1].replace(/[*_#`]/g, "").split(/[&,]/)[0].trim();
+    }
 
-      // Try to find a neighborhood/place name in the title
-      // Common patterns: "Arrival & Jaffa", "Bauhaus, Beaches & Bohemian", "Art, Markets & Departure"
-      // Extract the first recognizable place-like word(s)
-      const placeWords = title
-        .split(/[,&]+/)
-        .map(s => s.trim())
-        .filter(s => 
-          s.length > 2 && 
-          !s.match(/^(Arrival|Departure|Ancient|Historic|Hidden|Bohemian|Art|Markets|Beaches|Coastal|Morning|Afternoon|Evening|Final|Last|Free|Rest|Travel|Transit)/i)
-        );
-      
-      const place = placeWords[0] || title.split(/[,&–—-]/)[0].trim();
-      if (place && place.length > 1) {
-        // Qualify with primary city for better geocoding
-        const qualified = primaryCity && !place.toLowerCase().includes(primaryCity.toLowerCase())
-          ? `${place}, ${primaryCity}`
-          : place;
-        locations.push(qualified);
+    if (rawLoc && rawLoc.length > 2 && rawLoc.length < 50) {
+      // Filter out generic headers
+      if (!rawLoc.match(/^(Day|Budget|Tips|Morning|Afternoon|Evening|Overview)/i)) {
+        locations.push(rawLoc);
       }
     }
   }
 
-  // Deduplicate
-  return [...new Set(locations)];
+  const uniqueLocations = [...new Set(locations)];
+
+  // Anchor the search to the specific city/country context
+  if (context) {
+    return uniqueLocations.map(loc => 
+      loc.toLowerCase().includes(context.primary_city.toLowerCase()) 
+        ? loc 
+        : `${loc}, ${context.primary_city}, ${context.country}`
+    );
+  }
+
+  return uniqueLocations;
 }
 
-async function geocode(name: string): Promise<{ lat: number; lng: number } | null> {
+/**
+ * Geocodes a location name with optional country constraints
+ */
+async function geocode(name: string, context?: LocationContext): Promise<{ lat: number; lng: number } | null> {
   try {
+    const countryFilter = context?.country_code 
+      ? `&countrycodes=${context.country_code.toLowerCase()}` 
+      : "";
+
     const resp = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1${countryFilter}`,
       { headers: { "User-Agent": "LovableTravelPlanner/1.0" } }
     );
     const data = await resp.json();
     if (data.length > 0) {
       const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon); // Nominatim uses "lon", not "lng"
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return { lat, lng };
-      }
+      const lng = parseFloat(data[0].lon);
+      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
     }
   } catch (e) {
     console.warn("Geocode failed for:", name, e);
@@ -131,40 +137,37 @@ async function geocode(name: string): Promise<{ lat: number; lng: number } | nul
   return null;
 }
 
-interface ItineraryMapProps {
-  content: string;
-  isStreaming: boolean;
-}
-
-export default function ItineraryMap({ content, isStreaming }: ItineraryMapProps) {
+export default function ItineraryMap({ content, isStreaming, locationContext }: ItineraryMapProps) {
   const [points, setPoints] = useState<GeoPoint[]>([]);
   const geocodedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (isStreaming) return;
+    if (isStreaming || !content) return;
 
-    const locations = extractLocations(content);
-    console.log("[ItineraryMap] Extracted locations:", locations);
-    if (locations.length === 0) return;
-
+    const locations = extractLocations(content, locationContext);
     const newLocations = locations.filter((l) => !geocodedRef.current.has(l));
+
     if (newLocations.length === 0) return;
 
     (async () => {
       const newPoints: GeoPoint[] = [];
       for (const loc of newLocations) {
         geocodedRef.current.add(loc);
-        const coords = await geocode(loc);
-        console.log("[ItineraryMap] Geocoded", loc, "→", coords);
+        const coords = await geocode(loc, locationContext);
+        
         if (coords) {
-          newPoints.push({ name: loc, ...coords, day: `Day ${locations.indexOf(loc) + 1}` });
+          newPoints.push({
+            name: loc.split(',')[0], // Use short name for the popup
+            ...coords,
+            day: `Day ${locations.indexOf(loc) + 1}`,
+          });
         }
-        // Respect Nominatim rate limit
+        // Nominatim rate limit
         await new Promise((r) => setTimeout(r, 1100));
       }
       setPoints((prev) => [...prev, ...newPoints]);
     })();
-  }, [content, isStreaming]);
+  }, [content, isStreaming, locationContext]);
 
   if (isStreaming || points.length === 0) return null;
 
@@ -184,7 +187,7 @@ export default function ItineraryMap({ content, isStreaming }: ItineraryMapProps
         <div className="h-[400px] w-full">
           <MapContainer
             center={[points[0].lat, points[0].lng]}
-            zoom={6}
+            zoom={13}
             style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={false}
           >
