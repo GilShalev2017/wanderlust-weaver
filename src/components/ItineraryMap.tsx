@@ -52,46 +52,57 @@ function FitBounds({ points }: { points: GeoPoint[] }) {
   return null;
 }
 
+/**
+ * Extract the primary destination city from the itinerary text.
+ */
+function extractPrimaryCity(markdown: string): string {
+  // Look for "Itinerary:" or title line with a city
+  const titleMatch = markdown.match(/(?:Itinerary|Trip).*?:\s*(.+)/i);
+  if (titleMatch) {
+    // Try to find a city name in the title (e.g. "3-Day Tel Aviv Itinerary")
+    const cityMatch = titleMatch[1].match(/([A-Z][a-zA-Zà-ÿ\s'-]+?)(?:\s+Itinerary|\s+Trip|\s*$)/i);
+    if (cityMatch) return cityMatch[1].trim();
+  }
+  // Fallback: look for the first h1/h2 mentioning a recognizable place
+  const h1Match = markdown.match(/^#{1,2}\s+.*?([A-Z][a-zA-Zà-ÿ\s'-]{2,25})\s+Itinerary/im);
+  if (h1Match) return h1Match[1].trim();
+  return "";
+}
+
+/**
+ * Extract one location per day from day headers, qualified with the primary city.
+ */
 function extractLocations(markdown: string): string[] {
+  const primaryCity = extractPrimaryCity(markdown);
   const locations: string[] = [];
   const lines = markdown.split("\n");
 
-  // Strategy 1: Look for "Location/City:" lines in the itinerary
   for (const line of lines) {
-    const locMatch = line.match(/\*?\*?Location\/City\*?\*?:\s*(.+)/i);
-    if (locMatch) {
-      const parts = locMatch[1].replace(/[*_]/g, "").split(/[/,&]/).map(s => s.trim()).filter(s => s.length > 1);
-      for (const p of parts) {
-        if (p.length < 60) locations.push(p);
-      }
-    }
-  }
+    // Match day headers like "### Day 1 – Jaffa's Ancient Soul" or "### **Day 2 – Bauhaus, Beaches**"
+    const dayMatch = line.match(/^#{1,4}\s*\*?\*?\s*Day\s+\d+\s*[:\s–—-]+\s*(.+)/i);
+    if (dayMatch) {
+      let title = dayMatch[1].replace(/[*_#`]/g, "").trim();
+      // Remove trailing ** if any
+      title = title.replace(/\*+$/, "").trim();
 
-  // Strategy 2: Extract bold place names that look like real locations (capitalized, short)
-  if (locations.length === 0) {
-    const boldPlaces = markdown.match(/\*\*([A-Z][a-zA-Zà-ÿ\s,'-]+)\*\*/g);
-    if (boldPlaces) {
-      for (const bp of boldPlaces.slice(0, 15)) {
-        const clean = bp.replace(/\*\*/g, "").trim();
-        if (
-          clean.length > 2 && clean.length < 40 &&
-          !clean.match(/^(Day|Budget|Tips|Pack|Overview|Summary|Total|Note|Morning|Afternoon|Evening|Travel|Location|Traveler|Important|Practical|Why|Off)/i)
-        ) {
-          locations.push(clean);
-        }
-      }
-    }
-  }
-
-  // Strategy 3: Day headers — extract just the place-like part
-  if (locations.length === 0) {
-    for (const line of lines) {
-      const dayMatch = line.match(/^#{1,4}\s*\*?\*?Day\s+\d+[^a-zA-Z]*(.+)/i);
-      if (dayMatch) {
-        let loc = dayMatch[1].replace(/[*_#`]/g, "").replace(/^\s*[:\s–—-]+\s*/, "").trim();
-        // Try to extract a known place name pattern (before &, comma, or parenthetical)
-        const firstPart = loc.split(/[&,]/)[0].trim();
-        if (firstPart.length > 2 && firstPart.length < 50) locations.push(firstPart);
+      // Try to find a neighborhood/place name in the title
+      // Common patterns: "Arrival & Jaffa", "Bauhaus, Beaches & Bohemian", "Art, Markets & Departure"
+      // Extract the first recognizable place-like word(s)
+      const placeWords = title
+        .split(/[,&]+/)
+        .map(s => s.trim())
+        .filter(s => 
+          s.length > 2 && 
+          !s.match(/^(Arrival|Departure|Ancient|Historic|Hidden|Bohemian|Art|Markets|Beaches|Coastal|Morning|Afternoon|Evening|Final|Last|Free|Rest|Travel|Transit)/i)
+        );
+      
+      const place = placeWords[0] || title.split(/[,&–—-]/)[0].trim();
+      if (place && place.length > 1) {
+        // Qualify with primary city for better geocoding
+        const qualified = primaryCity && !place.toLowerCase().includes(primaryCity.toLowerCase())
+          ? `${place}, ${primaryCity}`
+          : place;
+        locations.push(qualified);
       }
     }
   }
