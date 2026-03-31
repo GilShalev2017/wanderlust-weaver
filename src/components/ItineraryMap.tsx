@@ -13,9 +13,12 @@ import "leaflet/dist/leaflet.css";
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
 interface GeoPoint {
@@ -74,56 +77,79 @@ function FitBounds({ points }: { points: GeoPoint[] }) {
 /**
  * Extracts location names and qualifies them with geographic context
  */
-function extractLocations(markdown: string, context?: LocationContext): string[] {
+function extractLocations(
+  markdown: string,
+  context?: LocationContext,
+): string[] {
   const locations: string[] = [];
   const lines = markdown.split("\n");
 
-  // Strategy: Extract "Location/City" lines or Day headers
   for (const line of lines) {
+    // Priority 1: Look for the specific "Location/City:" line inside cards
     const locMatch = line.match(/\*?\*?Location\/City\*?\*?:\s*(.+)/i);
-    const dayMatch = line.match(/^#{1,4}\s*\*?\*?Day\s+\d+[^a-zA-Z]*(.+)/i);
-    
-    let rawLoc = "";
     if (locMatch) {
-      rawLoc = locMatch[1].replace(/[*_]/g, "").split(/[/,&]/)[0].trim();
-    } else if (dayMatch) {
-      rawLoc = dayMatch[1].replace(/[*_#`]/g, "").split(/[&,]/)[0].trim();
+      const clean = locMatch[1]
+        .replace(/[*_]/g, "") // Remove markdown bold/italic
+        .split(/[/,&–—-]/)[0] // Take the first part before a separator
+        .trim();
+
+      if (clean.length > 2 && clean.length < 50) {
+        locations.push(clean);
+      }
+      continue; // If we found a Location/City line, skip the header check for this line
     }
 
-    if (rawLoc && rawLoc.length > 2 && rawLoc.length < 50) {
-      // Filter out generic headers
-      if (!rawLoc.match(/^(Day|Budget|Tips|Morning|Afternoon|Evening|Overview)/i)) {
-        locations.push(rawLoc);
+    // Priority 2: Only use Day Headers if they contain a clear landmark (after the dash)
+    const dayMatch = line.match(/^#{1,4}\s*\*?\*?Day\s+\d+[:\s–—-]+\s*(.+)/i);
+    if (dayMatch) {
+      const headerTitle = dayMatch[1].replace(/[*_#`]/g, "").trim();
+      // If the title is just "Arrival" or "Departure", skip it
+      if (
+        !headerTitle.match(/^(Arrival|Departure|Overview|Summary|Intro|Day)/i)
+      ) {
+        // Take the first part of the title before any commas
+        const firstPart = headerTitle.split(",")[0].trim();
+        if (firstPart.length > 2 && firstPart.length < 40) {
+          locations.push(firstPart);
+        }
       }
     }
   }
 
+  // Deduplicate results
   const uniqueLocations = [...new Set(locations)];
 
-  // Anchor the search to the specific city/country context
-  if (context) {
-    return uniqueLocations.map(loc => 
-      loc.toLowerCase().includes(context.primary_city.toLowerCase()) 
-        ? loc 
-        : `${loc}, ${context.primary_city}, ${context.country}`
-    );
+  // Apply the Geographic Anchor (The Context)
+  if (context && context.primary_city) {
+    return uniqueLocations.map((loc) => {
+      const lowerLoc = loc.toLowerCase();
+      const lowerCity = context.primary_city.toLowerCase();
+
+      // If the location already mentions the city, just return it
+      if (lowerLoc.includes(lowerCity)) return loc;
+
+      // Otherwise, append the anchor: "Miznon" -> "Miznon, Tel Aviv, Israel"
+      return `${loc}, ${context.primary_city}, ${context.country}`;
+    });
   }
 
   return uniqueLocations;
 }
-
 /**
  * Geocodes a location name with optional country constraints
  */
-async function geocode(name: string, context?: LocationContext): Promise<{ lat: number; lng: number } | null> {
+async function geocode(
+  name: string,
+  context?: LocationContext,
+): Promise<{ lat: number; lng: number } | null> {
   try {
-    const countryFilter = context?.country_code 
-      ? `&countrycodes=${context.country_code.toLowerCase()}` 
+    const countryFilter = context?.country_code
+      ? `&countrycodes=${context.country_code.toLowerCase()}`
       : "";
 
     const resp = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1${countryFilter}`,
-      { headers: { "User-Agent": "LovableTravelPlanner/1.0" } }
+      { headers: { "User-Agent": "LovableTravelPlanner/1.0" } },
     );
     const data = await resp.json();
     if (data.length > 0) {
@@ -137,7 +163,11 @@ async function geocode(name: string, context?: LocationContext): Promise<{ lat: 
   return null;
 }
 
-export default function ItineraryMap({ content, isStreaming, locationContext }: ItineraryMapProps) {
+export default function ItineraryMap({
+  content,
+  isStreaming,
+  locationContext,
+}: ItineraryMapProps) {
   const [points, setPoints] = useState<GeoPoint[]>([]);
   const geocodedRef = useRef<Set<string>>(new Set());
 
@@ -145,6 +175,9 @@ export default function ItineraryMap({ content, isStreaming, locationContext }: 
     if (isStreaming || !content) return;
 
     const locations = extractLocations(content, locationContext);
+
+    console.log("[ItineraryMap] Extracted locations:", locations);
+
     const newLocations = locations.filter((l) => !geocodedRef.current.has(l));
 
     if (newLocations.length === 0) return;
@@ -153,11 +186,16 @@ export default function ItineraryMap({ content, isStreaming, locationContext }: 
       const newPoints: GeoPoint[] = [];
       for (const loc of newLocations) {
         geocodedRef.current.add(loc);
+
+        console.log("[ItineraryMap] Geocoding:", loc);
+
         const coords = await geocode(loc, locationContext);
-        
+
         if (coords) {
+          console.log("[ItineraryMap] Success!", loc, coords);
+
           newPoints.push({
-            name: loc.split(',')[0], // Use short name for the popup
+            name: loc.split(",")[0], // Use short name for the popup
             ...coords,
             day: `Day ${locations.indexOf(loc) + 1}`,
           });
@@ -171,7 +209,9 @@ export default function ItineraryMap({ content, isStreaming, locationContext }: 
 
   if (isStreaming || points.length === 0) return null;
 
-  const polylinePositions = points.map((p) => [p.lat, p.lng] as [number, number]);
+  const polylinePositions = points.map(
+    (p) => [p.lat, p.lng] as [number, number],
+  );
 
   return (
     <div className="w-full max-w-3xl mx-auto mb-8">
@@ -196,7 +236,11 @@ export default function ItineraryMap({ content, isStreaming, locationContext }: 
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {points.map((point, i) => (
-              <Marker key={i} position={[point.lat, point.lng]} icon={createDayIcon(i + 1)}>
+              <Marker
+                key={i}
+                position={[point.lat, point.lng]}
+                icon={createDayIcon(i + 1)}
+              >
                 <Popup>
                   <strong className="text-sm">{point.day}</strong>
                   <br />

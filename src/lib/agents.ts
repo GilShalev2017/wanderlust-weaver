@@ -135,6 +135,8 @@ export async function runTravelPipeline(
   callbacks.onStageChange("research");
   let research = await callAgent("travel-research", { tripRequest });
 
+  console.log("[Agents] Raw Research Result:", research);
+
   // --- NEW: EXTRACT METADATA ---
   let locationContext = undefined;
   const metadataMatch = research.match(/\[METADATA\]([\s\S]*?)\[\/METADATA\]/);
@@ -142,6 +144,9 @@ export async function runTravelPipeline(
   if (metadataMatch) {
     try {
       locationContext = JSON.parse(metadataMatch[1].trim());
+    
+      console.log("[Agents] Metadata successfully parsed:", locationContext); // LOG SUCCESS
+
       // Clean the research text so the metadata block isn't passed to other agents or UI
       research = research
         .replace(/\[METADATA\][\s\S]*?\[\/METADATA\]/, "")
@@ -209,6 +214,8 @@ export async function runTravelPipeline(
     }
   }
 
+  console.log("[Agents] Pipeline complete. Sending context to onDone:", locationContext);
+  
   callbacks.onStageChange("complete");
   // Pass the extracted location context back to the UI to update the map
   callbacks.onDone(fullFinalContent, locationContext);
