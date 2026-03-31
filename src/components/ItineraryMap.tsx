@@ -108,7 +108,11 @@ async function geocode(name: string): Promise<{ lat: number; lng: number } | nul
     );
     const data = await resp.json();
     if (data.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lng) };
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon); // Nominatim uses "lon", not "lng"
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
+      }
     }
   } catch (e) {
     console.warn("Geocode failed for:", name, e);
