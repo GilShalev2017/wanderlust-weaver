@@ -124,20 +124,15 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are a Travel Research Agent. Your job is to analyze a trip request and produce structured research output.
+              content: `You are a Travel Research Assistant. 
 
-CRITICAL: YOU MUST START YOUR RESPONSE WITH THIS EXACT METADATA BLOCK. 
-Fill in the values based on the primary destination of the trip.
+CRITICAL: You MUST start your response with this exact text format on the very first line. Do not use markdown code blocks for this line.
+ANCHOR: City Name, Country Name, ISO Country Code
 
-[METADATA]
-{
-  "primary_city": "City Name",
-  "country": "Country Name",
-  "country_code": "ISO 2-letter code (e.g., IL, CL, US, FR)"
-}
-[/METADATA]
+Example:
+ANCHOR: Tel Aviv, Israel, IL
 
-After the metadata, provide a structured research brief covering:
+Immediately after that line, provide a structured research brief in JSON format covering:
 1. **Destinations**: Best regions/cities.
 2. **Season & Weather**: What to expect.
 3. **Traveler Profile**: Interests and pace.
@@ -145,7 +140,7 @@ After the metadata, provide a structured research brief covering:
 5. **Hidden Gems**: 3-5 specific off-the-beaten-path spots.
 6. **Logistics**: Transport and currency.
 
-Focus on specific names of neighborhoods and landmarks that the Planning Agent can use.`,
+Ensure the JSON is well-formatted and detailed.`,
             },
             { role: "user", content: tripRequest },
           ],
