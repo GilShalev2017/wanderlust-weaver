@@ -2,61 +2,44 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
-  // Version 1.0.5: Forced Pattern Matching
-  const DEPLOY_VERSION = "1.0.5-PATTERN-MATCH"; 
-
-  if (req.method === "OPTIONS")
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { tripRequest } = await req.json();
-    console.log(`[${DEPLOY_VERSION}] Processing request for:`, tripRequest);
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content: "You are a professional travel researcher. You always provide a plain-text anchor line before providing a JSON research block.",
-            },
-            { 
-              role: "user", 
-              content: `Task: Research "${tripRequest}"
-              
-              STRICT STRUCTURAL RULES:
-              1. Your response MUST begin with exactly one line: "ANCHOR: [City], [Country], [ISO Code]"
-              2. Immediately after that line, provide the research data inside a markdown JSON code block.
-              3. No intro text, no conversational filler.
-              
-              ---
-              EXPECTED START OF RESPONSE:
-              ANCHOR: London, United Kingdom, GB
-              \`\`\`json
-              {
-                "destinations": ...
-              }
-              \`\`\`` 
-            },
-          ],
-        }),
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a Travel Research Agent. Your job is to analyze a trip request and produce structured research output.
+
+Given a trip request, output a JSON-like research brief covering:
+1. **Destinations**: Best regions/cities to visit given the traveler's interests and timeframe
+2. **Season & Weather**: What to expect for the travel dates
+3. **Traveler Profile**: Key interests, pace preference, budget level
+4. **Cultural Notes**: Important customs, tips, or considerations
+5. **Hidden Gems**: Off-the-beaten-path spots matching their interests
+6. **Logistics**: Visa needs, transport options, currency tips
+
+Be thorough but concise. Focus on actionable insights the planning agent can use.`,
+          },
+          { role: "user", content: tripRequest },
+        ],
+      }),
+    });
 
     if (!response.ok) {
       const t = await response.text();
@@ -66,20 +49,14 @@ serve(async (req) => {
     const data = await response.json();
     const result = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ result, debug_version: DEPLOY_VERSION }), {
+    return new Response(JSON.stringify({ result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error(`[${DEPLOY_VERSION}] Error:`, e);
-    return new Response(
-      JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
-        debug_version: DEPLOY_VERSION
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    console.error("Research agent error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
