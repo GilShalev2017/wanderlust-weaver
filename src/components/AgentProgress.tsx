@@ -1,13 +1,14 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, CalendarDays, MapPin, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 
 export type AgentStage = "research" | "planning" | "detail" | "review" | "complete";
 
 const AGENTS = [
-  { id: "research" as const, label: "Research Agent", description: "Analyzing preferences & destinations", icon: Search },
-  { id: "planning" as const, label: "Planning Agent", description: "Structuring day-by-day itinerary", icon: CalendarDays },
-  { id: "detail" as const, label: "Detail Agent", description: "Adding restaurants, trails & tips", icon: MapPin },
-  { id: "review" as const, label: "Review Agent", description: "Optimizing logistics & budget", icon: CheckCircle2 },
+  { id: "research" as const, label: "Research Agent", description: "Analyzing preferences & destinations", detail: "Scours travel data, reviews, and seasonal info to find the best options for your trip.", icon: Search },
+  { id: "planning" as const, label: "Planning Agent", description: "Structuring day-by-day itinerary", detail: "Organizes your days with optimal routing, timing, and activity balance.", icon: CalendarDays },
+  { id: "detail" as const, label: "Detail Agent", description: "Adding restaurants, trails & tips", detail: "Fills in restaurant picks, walking routes, hidden gems, and local insider tips.", icon: MapPin },
+  { id: "review" as const, label: "Review Agent", description: "Optimizing logistics & budget", detail: "Final pass to tighten logistics, estimate costs, and ensure a smooth experience.", icon: CheckCircle2 },
 ];
 
 const stageOrder: AgentStage[] = ["research", "planning", "detail", "review", "complete"];
