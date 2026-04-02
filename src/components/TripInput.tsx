@@ -59,6 +59,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
             </span>
           )}
         </Button>
+        </motion.div>
       </form>
 
       <div className="mt-6 space-y-2">
