@@ -82,7 +82,7 @@ const markdownComponents: Components = {
 
 function DayCard({ title, content, index }: { title: string; content: string; index: number }) {
   // Extract day number from title
-  const dayNum = title.match(/Day\s+(\d+)/i)?.[1] || String(index);
+  const dayNum = title.match(/Day\s+(\d+)/i)?.[1] || String(index + 1);
 
   return (
     <motion.div
