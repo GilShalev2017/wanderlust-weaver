@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ItineraryMap from "./ItineraryMap";
+import DayMap from "./DayMap";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
