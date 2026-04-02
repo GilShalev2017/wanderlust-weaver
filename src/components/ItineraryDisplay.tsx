@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
-import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb } from "lucide-react";
+import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ItineraryMap from "./ItineraryMap";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface ItineraryDisplayProps {
   content: string;
@@ -134,8 +136,108 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
   );
 }
 
+async function exportToPDF(elementId: string, filename: string = "itinerary.pdf") {
+  try {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      console.error("Element not found for PDF export");
+      alert("Could not find the itinerary content to export.");
+      return;
+    }
+
+    // Show loading state
+    const originalButton = document.querySelector(`[data-pdf-export="${elementId}"]`) as HTMLButtonElement;
+    if (originalButton) {
+      originalButton.disabled = true;
+      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Generating...';
+    }
+
+    // Temporarily remove animations and transitions for cleaner PDF
+    const originalStyles: { [key: string]: string } = {};
+    const animatedElements = element.querySelectorAll('[class*="motion-"], [class*="animate-"]');
+    
+    animatedElements.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      originalStyles[el.toString()] = htmlEl.style.cssText;
+      htmlEl.style.transition = 'none';
+      htmlEl.style.animation = 'none';
+    });
+
+    // Create canvas from the element
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
+      onclone: (clonedDoc) => {
+        // Ensure white background in cloned document
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (clonedElement) {
+          clonedElement.style.backgroundColor = '#ffffff';
+        }
+      }
+    });
+
+    // Restore animations
+    animatedElements.forEach((el, index) => {
+      const htmlEl = el as HTMLElement;
+      htmlEl.style.cssText = originalStyles[Object.keys(originalStyles)[index]] || '';
+    });
+
+    // Get canvas dimensions
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    
+    // Calculate PDF dimensions (A4 size: 210mm x 297mm)
+    const pdfWidth = 210;
+    const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
+    
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: pdfHeight > pdfWidth ? "portrait" : "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Add image to PDF
+    const imgData = canvas.toDataURL("image/png");
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+    // Save the PDF
+    pdf.save(filename);
+
+    // Restore button state
+    if (originalButton) {
+      originalButton.disabled = false;
+      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download h-4 w-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export PDF';
+    }
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    
+    // Restore button state on error
+    const originalButton = document.querySelector(`[data-pdf-export="${elementId}"]`) as HTMLButtonElement;
+    if (originalButton) {
+      originalButton.disabled = false;
+      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download h-4 w-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export PDF';
+    }
+    
+    // Show error message
+    alert("Failed to generate PDF. Please try again or check your browser console for details.");
+  }
+}
+
 export default function ItineraryDisplay({ content, isStreaming, onReset }: ItineraryDisplayProps) {
   const sections = useMemo(() => (isStreaming ? [] : parseSections(content)), [content, isStreaming]);
+  const itineraryRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPDF = () => {
+    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const filename = `travel-itinerary-${timestamp}.pdf`;
+    exportToPDF("itinerary-content", filename);
+  };
 
   return (
     <motion.div
@@ -150,10 +252,21 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
           <h2 className="font-display text-2xl font-semibold text-foreground">Your Itinerary</h2>
         </div>
         {!isStreaming && (
-          <Button onClick={onReset} variant="outline" className="font-body text-sm gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Plan Another Trip
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleExportPDF} 
+              variant="outline" 
+              className="font-body text-sm gap-2"
+              data-pdf-export="itinerary-content"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button onClick={onReset} variant="outline" className="font-body text-sm gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Plan Another Trip
+            </Button>
+          </div>
         )}
       </div>
 
@@ -172,7 +285,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
 
       {/* Finished: show parsed cards */}
       {!isStreaming && sections.length > 0 && (
-        <div className="flex flex-col gap-5">
+        <div id="itinerary-content" className="flex flex-col gap-5">
           {sections.map((section, i) => {
             if (section.type === "header") {
               return (
