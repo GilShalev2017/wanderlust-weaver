@@ -80,8 +80,10 @@ const markdownComponents: Components = {
   ),
 };
 
-function DayCard({ title, content, index }: { title: string; content: string; index: number }) {
-  // Extract day number from title
+function DayCard({ title, content, index, cityContext, country, countryCode }: {
+  title: string; content: string; index: number;
+  cityContext?: string; country?: string; countryCode?: string;
+}) {
   const dayNum = title.match(/Day\s+(\d+)/i)?.[1] || String(index + 1);
 
   return (
@@ -110,6 +112,14 @@ function DayCard({ title, content, index }: { title: string; content: string; in
           <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
+      {/* Per-day interactive map */}
+      <DayMap
+        dayContent={content}
+        dayNumber={parseInt(dayNum)}
+        cityContext={cityContext}
+        country={country}
+        countryCode={countryCode}
+      />
     </motion.div>
   );
 }
