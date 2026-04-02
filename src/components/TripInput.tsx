@@ -41,10 +41,11 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
           />
         </div>
 
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
         <Button
           type="submit"
           disabled={!request.trim() || isLoading}
-          className="w-full gradient-warm text-primary-foreground font-body font-medium text-base py-6 rounded-lg shadow-soft hover:shadow-card transition-all"
+          className="w-full gradient-warm text-primary-foreground font-body font-medium text-base py-6 rounded-lg shadow-soft hover:shadow-elevated hover:brightness-110 transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
@@ -58,6 +59,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
             </span>
           )}
         </Button>
+        </motion.div>
       </form>
 
       <div className="mt-6 space-y-2">
@@ -68,7 +70,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
               key={i}
               onClick={() => setRequest(trip)}
               disabled={isLoading}
-              className="text-left text-sm font-body text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-2 hover:bg-secondary/50 transition-colors disabled:opacity-50"
+              className="text-left text-sm font-body text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-2 hover:bg-secondary/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50"
             >
               "{trip}"
             </button>
