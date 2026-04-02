@@ -19,6 +19,7 @@ interface AgentProgressProps {
 
 export default function AgentProgress({ currentStage }: AgentProgressProps) {
   const currentIdx = stageOrder.indexOf(currentStage);
+  const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
   return (
     <motion.div
@@ -31,21 +32,29 @@ export default function AgentProgress({ currentStage }: AgentProgressProps) {
           const isDone = currentIdx > i;
           const isActive = stageOrder[currentIdx] === agent.id;
           const Icon = agent.icon;
+          const isHovered = hoveredAgent === agent.id;
 
           return (
-            <div key={agent.id} className="flex-1 flex flex-col items-center text-center gap-1.5">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${
+            <div
+              key={agent.id}
+              className="flex-1 flex flex-col items-center text-center gap-1.5 relative cursor-pointer"
+              onMouseEnter={() => setHoveredAgent(agent.id)}
+              onMouseLeave={() => setHoveredAgent(null)}
+            >
+              <motion.div
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                   isDone
-                    ? "bg-accent text-accent-foreground"
+                    ? "bg-accent text-accent-foreground shadow-md"
                     : isActive
-                    ? "gradient-warm text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    ? "gradient-warm text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
                 <Icon className="h-4 w-4" />
-              </div>
-              <span className={`text-xs font-body font-medium ${isActive ? "text-primary" : isDone ? "text-accent" : "text-muted-foreground"}`}>
+              </motion.div>
+              <span className={`text-xs font-body font-medium transition-colors duration-300 ${isActive ? "text-primary" : isDone ? "text-accent" : "text-muted-foreground"}`}>
                 {agent.label}
               </span>
               {isActive && (
@@ -63,6 +72,22 @@ export default function AgentProgress({ currentStage }: AgentProgressProps) {
                   ))}
                 </motion.div>
               )}
+              {/* Hover tooltip */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full mt-3 z-20 w-48 bg-card border border-border rounded-lg shadow-elevated p-3 text-left pointer-events-none"
+                  >
+                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-l border-t border-border rotate-45" />
+                    <p className="text-xs font-body text-foreground font-medium mb-1">{agent.description}</p>
+                    <p className="text-[11px] font-body text-muted-foreground leading-relaxed">{agent.detail}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}

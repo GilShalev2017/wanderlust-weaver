@@ -121,8 +121,9 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3 }}
       transition={{ duration: 0.35 }}
-      className="bg-card rounded-xl border border-border shadow-soft overflow-hidden"
+      className="bg-card rounded-xl border border-border shadow-soft overflow-hidden transition-colors hover:border-primary/30"
     >
       <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-secondary/30">
         {icon}

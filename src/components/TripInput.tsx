@@ -70,7 +70,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
               key={i}
               onClick={() => setRequest(trip)}
               disabled={isLoading}
-              className="text-left text-sm font-body text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-2 hover:bg-secondary/50 transition-colors disabled:opacity-50"
+              className="text-left text-sm font-body text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-2 hover:bg-secondary/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50"
             >
               "{trip}"
             </button>
