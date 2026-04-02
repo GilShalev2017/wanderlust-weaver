@@ -41,10 +41,11 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
           />
         </div>
 
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
         <Button
           type="submit"
           disabled={!request.trim() || isLoading}
-          className="w-full gradient-warm text-primary-foreground font-body font-medium text-base py-6 rounded-lg shadow-soft hover:shadow-card transition-all"
+          className="w-full gradient-warm text-primary-foreground font-body font-medium text-base py-6 rounded-lg shadow-soft hover:shadow-elevated hover:brightness-110 transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
