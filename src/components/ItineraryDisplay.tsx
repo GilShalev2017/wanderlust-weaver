@@ -245,6 +245,16 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
   const sections = useMemo(() => (isStreaming ? [] : parseSections(content)), [content, isStreaming]);
   const itineraryRef = useRef<HTMLDivElement>(null);
 
+  // Extract city/country context from itinerary header for geocoding
+  const locationContext = useMemo(() => {
+    if (!content) return {};
+    // Look for patterns like "Tel Aviv, Israel" or "Tokyo, Japan" in first few lines
+    const header = content.slice(0, 1000);
+    const match = header.match(/(?:to|in|for|exploring)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),?\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/i);
+    if (match) return { city: match[1], country: match[2] };
+    return {};
+  }, [content]);
+
   const handleExportPDF = () => {
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const filename = `travel-itinerary-${timestamp}.pdf`;
