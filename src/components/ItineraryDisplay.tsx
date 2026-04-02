@@ -292,8 +292,6 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
         )}
       </div>
 
-      {/* Map */}
-      {/* <ItineraryMap content={content} isStreaming={isStreaming} /> */}
 
       {/* Streaming: show raw markdown */}
       {isStreaming && (
