@@ -288,30 +288,34 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
       {/* Finished: show parsed cards */}
       {!isStreaming && sections.length > 0 && (
         <div id="itinerary-content" className="flex flex-col gap-5">
-          {sections.map((section, i) => {
-            if (section.type === "header") {
-              return (
-                <article key={i} className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
-                </article>
-              );
-            }
-            if (section.type === "day") {
-              return <DayCard key={i} title={section.title} content={section.content} index={i} />;
-            }
-            if (section.type === "days-header") {
-              return (
-                <div key={i} className="flex items-center gap-2 mt-4 mb-1">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                  <h2 className="font-display text-xl font-semibold text-foreground">{section.title}</h2>
-                </div>
-              );
-            }
-            if (section.content) {
-              return <SectionCard key={i} type={section.type} title={section.title} content={section.content} />;
-            }
-            return null;
-          })}
+          {(() => {
+            let dayCounter = 0;
+            return sections.map((section, i) => {
+              if (section.type === "header") {
+                return (
+                  <article key={i} className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
+                    <ReactMarkdown>{section.content}</ReactMarkdown>
+                  </article>
+                );
+              }
+              if (section.type === "day") {
+                dayCounter++;
+                return <DayCard key={i} title={section.title} content={section.content} index={dayCounter - 1} />;
+              }
+              if (section.type === "days-header") {
+                return (
+                  <div key={i} className="flex items-center gap-2 mt-4 mb-1">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                    <h2 className="font-display text-xl font-semibold text-foreground">{section.title}</h2>
+                  </div>
+                );
+              }
+              if (section.content) {
+                return <SectionCard key={i} type={section.type} title={section.title} content={section.content} />;
+              }
+              return null;
+            });
+          })()}
         </div>
       )}
     </motion.div>
