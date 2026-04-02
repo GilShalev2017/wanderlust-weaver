@@ -318,7 +318,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               }
               if (section.type === "day") {
                 dayCounter++;
-                return <DayCard key={i} title={section.title} content={section.content} index={dayCounter - 1} />;
+                return <DayCard key={i} title={section.title} content={section.content} index={dayCounter - 1} cityContext={locationContext.city} country={locationContext.country} />;
               }
               if (section.type === "days-header") {
                 return (
