@@ -88,8 +88,9 @@ function DayCard({ title, content, index }: { title: string; content: string; in
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4, boxShadow: "0 16px 48px -12px hsl(25 20% 15% / 0.15)" }}
       transition={{ duration: 0.35, delay: index * 0.05 }}
-      className="bg-card rounded-xl border border-border shadow-soft overflow-hidden"
+      className="bg-card rounded-xl border border-border shadow-soft overflow-hidden transition-colors hover:border-primary/30"
     >
       {/* Day header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-secondary/30">
