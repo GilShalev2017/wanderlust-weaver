@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ItineraryMap from "./ItineraryMap";
+import DayMap from "./DayMap";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -80,8 +80,10 @@ const markdownComponents: Components = {
   ),
 };
 
-function DayCard({ title, content, index }: { title: string; content: string; index: number }) {
-  // Extract day number from title
+function DayCard({ title, content, index, cityContext, country, countryCode }: {
+  title: string; content: string; index: number;
+  cityContext?: string; country?: string; countryCode?: string;
+}) {
   const dayNum = title.match(/Day\s+(\d+)/i)?.[1] || String(index + 1);
 
   return (
@@ -110,6 +112,14 @@ function DayCard({ title, content, index }: { title: string; content: string; in
           <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
+      {/* Per-day interactive map */}
+      <DayMap
+        dayContent={content}
+        dayNumber={parseInt(dayNum)}
+        cityContext={cityContext}
+        country={country}
+        countryCode={countryCode}
+      />
     </motion.div>
   );
 }
@@ -235,6 +245,16 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
   const sections = useMemo(() => (isStreaming ? [] : parseSections(content)), [content, isStreaming]);
   const itineraryRef = useRef<HTMLDivElement>(null);
 
+  // Extract city/country context from itinerary header for geocoding
+  const locationContext = useMemo(() => {
+    if (!content) return {};
+    // Look for patterns like "Tel Aviv, Israel" or "Tokyo, Japan" in first few lines
+    const header = content.slice(0, 1000);
+    const match = header.match(/(?:to|in|for|exploring)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),?\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/i);
+    if (match) return { city: match[1], country: match[2] };
+    return {};
+  }, [content]);
+
   const handleExportPDF = () => {
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const filename = `travel-itinerary-${timestamp}.pdf`;
@@ -272,8 +292,6 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
         )}
       </div>
 
-      {/* Map */}
-      {/* <ItineraryMap content={content} isStreaming={isStreaming} /> */}
 
       {/* Streaming: show raw markdown */}
       {isStreaming && (
@@ -300,7 +318,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               }
               if (section.type === "day") {
                 dayCounter++;
-                return <DayCard key={i} title={section.title} content={section.content} index={dayCounter - 1} />;
+                return <DayCard key={i} title={section.title} content={section.content} index={dayCounter - 1} cityContext={locationContext.city} country={locationContext.country} />;
               }
               if (section.type === "days-header") {
                 return (
