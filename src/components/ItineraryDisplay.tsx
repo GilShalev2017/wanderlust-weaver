@@ -331,7 +331,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               }
               if (section.type === "days-header") {
                 return (
-                  <div key={i} className="flex items-center gap-2 mt-4 mb-1">
+                  <div key={i} data-pdf-section className="flex items-center gap-2 mt-4 mb-1">
                     <CalendarDays className="h-5 w-5 text-primary" />
                     <h2 className="font-display text-xl font-semibold text-foreground">{section.title}</h2>
                   </div>
