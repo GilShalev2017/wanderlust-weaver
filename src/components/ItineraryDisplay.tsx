@@ -405,7 +405,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               if (section.type === "header") {
                 return (
                   <article key={i} data-pdf-section className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
-                    <ReactMarkdown>{section.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
                   </article>
                 );
               }
