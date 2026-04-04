@@ -390,7 +390,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
       {isStreaming && (
         <div className="bg-card rounded-xl border border-border p-6 md:p-8 shadow-card">
           <article className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h2:text-xl prose-h2:text-primary prose-h3:text-lg prose-h3:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-a:text-primary">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </article>
           <span className="inline-block w-2 h-5 bg-primary/60 animate-pulse ml-1 rounded-sm" />
         </div>
