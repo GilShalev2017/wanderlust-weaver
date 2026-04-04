@@ -4,7 +4,7 @@ import heroImage from "@/assets/hero-japan.jpg";
 import TripInput from "@/components/TripInput";
 import AgentProgress, { type AgentStage } from "@/components/AgentProgress";
 import ItineraryDisplay from "@/components/ItineraryDisplay";
-import { runTravelPipeline } from "@/lib/agents";
+import { runTravelPipeline, CreditError, RateLimitError } from "@/lib/agents";
 import { toast } from "sonner";
 
 type AppState = "input" | "processing" | "done";
