@@ -1,5 +1,12 @@
 import type { AgentStage } from "@/components/AgentProgress";
 
+export class CreditError extends Error {
+  constructor(message: string) { super(message); this.name = "CreditError"; }
+}
+export class RateLimitError extends Error {
+  constructor(message: string) { super(message); this.name = "RateLimitError"; }
+}
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -18,10 +25,19 @@ async function callAgent(
 
   if (!resp.ok) {
     const text = await resp.text();
+    if (resp.status === 402) {
+      throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+    }
+    if (resp.status === 429) {
+      throw new RateLimitError("Too many requests. Please wait a moment and try again.");
+    }
     throw new Error(`Agent ${functionName} failed (${resp.status}): ${text}`);
   }
 
   const data = await resp.json();
+  if (data.error && typeof data.error === "string" && data.error.includes("402")) {
+    throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+  }
   return data.result;
 }
 
@@ -59,7 +75,12 @@ export async function runTravelPipeline(
     body: JSON.stringify({ tripRequest, research, plan, detailed }),
   });
 
-  if (!resp.ok || !resp.body) throw new Error("Review agent failed");
+  if (!resp.ok) {
+    if (resp.status === 402) throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+    if (resp.status === 429) throw new RateLimitError("Too many requests. Please wait a moment and try again.");
+    throw new Error("Review agent failed");
+  }
+  if (!resp.body) throw new Error("Review agent returned no body");
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
