@@ -46,7 +46,7 @@ export function useSpeechRecognition({
     setInterimText("");
 
     const SpeechRecognitionCtor =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognitionCtor();
     recognition.lang = lang;
     recognition.interimResults = true;
