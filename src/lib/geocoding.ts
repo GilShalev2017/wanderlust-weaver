@@ -37,11 +37,24 @@ function normalize(s?: string): string {
   return (s || "").replace(/[:\-–—]/g, "").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Strip common LLM-generated trailing phrases from location strings.
+ */
+function cleanLLMNoise(s: string): string {
+  return s
+    .replace(/,?\s*(designed for|known for|famous for|popular for|perfect for|ideal for|great for|built for|located in the|especially around).*$/i, "")
+    .replace(/:/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function geocode(
   name: string,
   countryCode?: string,
 ): Promise<{ lat: number; lng: number } | null> {
-  const cacheKey = `${name}||${countryCode || ""}`;
+  // Clean LLM noise before anything
+  const cleanName = cleanLLMNoise(name);
+  const cacheKey = `${cleanName}||${countryCode || ""}`;
 
   // 1. Memory cache
   if (memoryCache.has(cacheKey)) return memoryCache.get(cacheKey) ?? null;
@@ -54,10 +67,12 @@ export async function geocode(
   }
 
   // 3. Parse place, city, country from the name (format: "Place, City, Country")
-  const parts = name.split(",").map((p) => p.trim());
+  const parts = cleanName.split(",").map((p) => p.trim());
   const place = normalize(parts[0]);
   const city = normalize(parts[1]);
-  const country = normalize(parts[2]);
+  const rawCountry = normalize(parts[2]);
+  // Guard: reject country values that look like LLM phrases or are too long
+  const country = rawCountry.length > 20 || /^(designed|known|famous|popular|perfect|ideal|great|built|located)/i.test(rawCountry) ? "" : rawCountry;
 
   console.log("Geocode input:", { place, city, country, countryCode, raw: name });
 
