@@ -106,6 +106,20 @@ export async function geocode(
   return null;
 }
 
+const INVALID_PLACES = [
+  "flight", "arrival", "departure", "check-in", "check in",
+  "breakfast", "lunch", "dinner", "hotel", "stay", "transport",
+  "taxi", "train", "bus", "transfer", "accommodation", "n/a",
+  "travel preparation", "souvenir", "shopping", "farewell",
+  "packing", "checkout", "check out", "rest", "free time",
+];
+
+function isValidPlace(place: string): boolean {
+  if (!place || place.length < 3) return false;
+  const lower = place.toLowerCase();
+  return !INVALID_PLACES.some((invalid) => lower.includes(invalid));
+}
+
 /**
  * Extracts location names from a day's markdown content.
  * Looks for Location/City tags, bold place names, and contextual headers.
@@ -140,16 +154,27 @@ export function extractDayLocations(
   // Deduplicate
   const unique = [...new Set(locations)];
 
+  // Filter out non-location entries
+  const filtered = unique.filter((loc) => {
+    const valid = isValidPlace(loc);
+    if (!valid) {
+      console.log("[geocode] Filtered out invalid place:", loc);
+    }
+    return valid;
+  });
+
+  console.log("[geocode] Extracted locations for geocoding:", filtered);
+
   // Qualify with city context
   if (cityContext) {
-    return unique.map((loc) => {
+    return filtered.map((loc) => {
       if (loc.toLowerCase().includes(cityContext.toLowerCase())) return loc;
       const suffix = country ? `, ${cityContext}, ${country}` : `, ${cityContext}`;
       return `${loc}${suffix}`;
     });
   }
 
-  return unique;
+  return filtered;
 }
 
 /**
