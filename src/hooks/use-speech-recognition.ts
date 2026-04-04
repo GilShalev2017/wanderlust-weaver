@@ -30,7 +30,7 @@ export function useSpeechRecognition({
 
   const isSupported =
     typeof window !== "undefined" &&
-    !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
