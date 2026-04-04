@@ -18,10 +18,19 @@ async function callAgent(
 
   if (!resp.ok) {
     const text = await resp.text();
+    if (resp.status === 402) {
+      throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+    }
+    if (resp.status === 429) {
+      throw new RateLimitError("Too many requests. Please wait a moment and try again.");
+    }
     throw new Error(`Agent ${functionName} failed (${resp.status}): ${text}`);
   }
 
   const data = await resp.json();
+  if (data.error && typeof data.error === "string" && data.error.includes("402")) {
+    throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+  }
   return data.result;
 }
 
