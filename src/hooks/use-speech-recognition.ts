@@ -24,7 +24,7 @@ export function useSpeechRecognition({
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
 
