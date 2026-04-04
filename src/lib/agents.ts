@@ -75,7 +75,12 @@ export async function runTravelPipeline(
     body: JSON.stringify({ tripRequest, research, plan, detailed }),
   });
 
-  if (!resp.ok || !resp.body) throw new Error("Review agent failed");
+  if (!resp.ok) {
+    if (resp.status === 402) throw new CreditError("AI credits exhausted. Please add funds in Settings → Cloud & AI balance.");
+    if (resp.status === 429) throw new RateLimitError("Too many requests. Please wait a moment and try again.");
+    throw new Error("Review agent failed");
+  }
+  if (!resp.body) throw new Error("Review agent returned no body");
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
