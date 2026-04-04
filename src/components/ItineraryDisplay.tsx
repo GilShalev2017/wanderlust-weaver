@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DayMap from "./DayMap";
