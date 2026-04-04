@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { MapPin, RotateCcw, CalendarDays, DollarSign, Backpack, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DayMap from "./DayMap";
@@ -110,7 +111,7 @@ function DayCard({ title, content, index, cityContext, country, countryCode }: {
       {/* Day content */}
       <div className="px-5 py-4">
         <article className="prose prose-sm prose-stone max-w-none font-body prose-headings:font-display prose-h4:text-base prose-h4:text-primary prose-h4:mt-3 prose-h4:mb-1 prose-p:text-foreground/85 prose-p:leading-relaxed prose-li:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-ul:my-1 prose-li:my-0.5">
-          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
       {/* Per-day interactive map */}
@@ -197,7 +198,7 @@ function BudgetCard({ title, content }: { title: string; content: string }) {
       </div>
       <div className="px-6 py-5">
         <article className="max-w-none font-body">
-          <ReactMarkdown components={budgetMarkdownComponents}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={budgetMarkdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
     </motion.div>
@@ -226,7 +227,7 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
       </div>
       <div className="px-5 py-4">
         <article className="prose prose-sm prose-stone max-w-none font-body prose-headings:font-display prose-p:text-foreground/85 prose-p:leading-relaxed prose-li:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-ul:my-1">
-          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
     </motion.div>
@@ -389,7 +390,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
       {isStreaming && (
         <div className="bg-card rounded-xl border border-border p-6 md:p-8 shadow-card">
           <article className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h2:text-xl prose-h2:text-primary prose-h3:text-lg prose-h3:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-a:text-primary">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </article>
           <span className="inline-block w-2 h-5 bg-primary/60 animate-pulse ml-1 rounded-sm" />
         </div>
@@ -404,7 +405,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               if (section.type === "header") {
                 return (
                   <article key={i} data-pdf-section className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
-                    <ReactMarkdown>{section.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
                   </article>
                 );
               }
