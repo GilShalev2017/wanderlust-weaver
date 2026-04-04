@@ -125,7 +125,90 @@ function DayCard({ title, content, index, cityContext, country, countryCode }: {
   );
 }
 
+const budgetMarkdownComponents: Components = {
+  ...markdownComponents,
+  table: ({ children, ...props }) => (
+    <div className="overflow-x-auto my-4 rounded-lg border border-primary/20 shadow-sm">
+      <table className="w-full text-sm" {...props}>{children}</table>
+    </div>
+  ),
+  thead: ({ children, ...props }) => (
+    <thead className="bg-primary/10" {...props}>{children}</thead>
+  ),
+  th: ({ children, ...props }) => (
+    <th className="px-4 py-3 text-left font-semibold text-foreground border-b border-primary/20 text-xs uppercase tracking-wider" {...props}>{children}</th>
+  ),
+  td: ({ children, ...props }) => (
+    <td className="px-4 py-3 text-foreground/90 border-b border-border/50" {...props}>{children}</td>
+  ),
+  tr: ({ children, ...props }) => (
+    <tr className="even:bg-secondary/30 hover:bg-secondary/50 transition-colors" {...props}>{children}</tr>
+  ),
+  strong: ({ children, ...props }) => (
+    <strong className="text-foreground font-semibold" {...props}>{children}</strong>
+  ),
+  li: ({ children, ...props }) => (
+    <li className="text-foreground/85 py-0.5 marker:text-primary" {...props}>{children}</li>
+  ),
+  ul: ({ children, ...props }) => (
+    <ul className="my-2 space-y-1 list-disc pl-5" {...props}>{children}</ul>
+  ),
+  h3: ({ children, ...props }) => (
+    <h3 className="font-display text-base font-semibold text-primary mt-4 mb-2 flex items-center gap-2" {...props}>
+      <span className="w-1 h-4 rounded-full bg-primary inline-block" />
+      {children}
+    </h3>
+  ),
+  h4: ({ children, ...props }) => (
+    <h4 className="font-display text-sm font-semibold text-foreground mt-3 mb-1" {...props}>{children}</h4>
+  ),
+  p: ({ children, ...props }) => {
+    const text = String(children || "");
+    // Highlight total/grand total lines
+    if (/total/i.test(text) && /\$|€|£|¥/.test(text)) {
+      return (
+        <p className="text-foreground font-semibold bg-accent/10 rounded-lg px-4 py-2 my-3 border border-accent/20 text-base" {...props}>
+          {children}
+        </p>
+      );
+    }
+    return <p className="text-foreground/85 leading-relaxed my-1.5" {...props}>{children}</p>;
+  },
+};
+
+function BudgetCard({ title, content }: { title: string; content: string }) {
+  return (
+    <motion.div
+      data-pdf-section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.35 }}
+      className="bg-card rounded-xl border border-primary/20 shadow-card overflow-hidden transition-colors hover:border-primary/40"
+    >
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+          <DollarSign className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="font-display text-xl font-semibold text-foreground">{title}</h2>
+          <span className="text-xs font-body text-muted-foreground">Estimated costs breakdown</span>
+        </div>
+      </div>
+      <div className="px-6 py-5">
+        <article className="max-w-none font-body">
+          <ReactMarkdown components={budgetMarkdownComponents}>{content}</ReactMarkdown>
+        </article>
+      </div>
+    </motion.div>
+  );
+}
+
 function SectionCard({ type, title, content }: { type: string; title: string; content: string }) {
+  if (type === "budget") {
+    return <BudgetCard title={title} content={content} />;
+  }
+
   const icon = sectionIcons[type] || <CalendarDays className="h-5 w-5 text-primary" />;
 
   return (
