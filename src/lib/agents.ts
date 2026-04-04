@@ -1,5 +1,12 @@
 import type { AgentStage } from "@/components/AgentProgress";
 
+export class CreditError extends Error {
+  constructor(message: string) { super(message); this.name = "CreditError"; }
+}
+export class RateLimitError extends Error {
+  constructor(message: string) { super(message); this.name = "RateLimitError"; }
+}
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 

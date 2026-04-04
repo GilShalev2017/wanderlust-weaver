@@ -27,7 +27,19 @@ export default function Index() {
       });
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong. Please try again.");
+      if (err instanceof CreditError) {
+        toast.error("AI credits exhausted", {
+          description: "Please add funds in Settings → Cloud & AI balance to continue.",
+          duration: 10000,
+        });
+      } else if (err instanceof RateLimitError) {
+        toast.error("Rate limited", {
+          description: "Too many requests. Please wait a moment and try again.",
+          duration: 6000,
+        });
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
       setState("input");
     }
   };
