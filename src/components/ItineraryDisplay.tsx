@@ -198,7 +198,7 @@ function BudgetCard({ title, content }: { title: string; content: string }) {
       </div>
       <div className="px-6 py-5">
         <article className="max-w-none font-body">
-          <ReactMarkdown components={budgetMarkdownComponents}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={budgetMarkdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
     </motion.div>
