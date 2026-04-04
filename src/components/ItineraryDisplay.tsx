@@ -88,6 +88,7 @@ function DayCard({ title, content, index, cityContext, country, countryCode }: {
 
   return (
     <motion.div
+      data-pdf-section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, boxShadow: "0 16px 48px -12px hsl(25 20% 15% / 0.15)" }}
