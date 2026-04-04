@@ -130,6 +130,7 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
 
   return (
     <motion.div
+      data-pdf-section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -3 }}
