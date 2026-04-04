@@ -88,6 +88,7 @@ function DayCard({ title, content, index, cityContext, country, countryCode }: {
 
   return (
     <motion.div
+      data-pdf-section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, boxShadow: "0 16px 48px -12px hsl(25 20% 15% / 0.15)" }}
@@ -129,6 +130,7 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
 
   return (
     <motion.div
+      data-pdf-section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -3 }}
@@ -149,95 +151,95 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
 }
 
 async function exportToPDF(elementId: string, filename: string = "itinerary.pdf") {
+  const A4_WIDTH_MM = 210;
+  const A4_HEIGHT_MM = 297;
+  const MARGIN_MM = 12;
+  const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2;
+  const CONTENT_HEIGHT_MM = A4_HEIGHT_MM - MARGIN_MM * 2;
+  const SECTION_GAP_MM = 4;
+
   try {
     const element = document.getElementById(elementId);
     if (!element) {
-      console.error("Element not found for PDF export");
       alert("Could not find the itinerary content to export.");
       return;
     }
 
-    // Show loading state
-    const originalButton = document.querySelector(`[data-pdf-export="${elementId}"]`) as HTMLButtonElement;
-    if (originalButton) {
-      originalButton.disabled = true;
-      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Generating...';
+    // Gather all sections marked for PDF
+    const sections = Array.from(
+      element.querySelectorAll("[data-pdf-section]")
+    ) as HTMLElement[];
+
+    if (sections.length === 0) {
+      alert("No content sections found to export.");
+      return;
     }
 
-    // Temporarily remove animations and transitions for cleaner PDF
-    const originalStyles: { [key: string]: string } = {};
-    const animatedElements = element.querySelectorAll('[class*="motion-"], [class*="animate-"]');
-    
-    animatedElements.forEach((el) => {
-      const htmlEl = el as HTMLElement;
-      originalStyles[el.toString()] = htmlEl.style.cssText;
-      htmlEl.style.transition = 'none';
-      htmlEl.style.animation = 'none';
-    });
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    let currentY = MARGIN_MM;
+    let isFirstSection = true;
 
-    // Create canvas from the element
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
-      onclone: (clonedDoc) => {
-        // Ensure white background in cloned document
-        const clonedElement = clonedDoc.getElementById(elementId);
-        if (clonedElement) {
-          clonedElement.style.backgroundColor = '#ffffff';
-        }
+    for (const section of sections) {
+      const canvas = await html2canvas(section, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const scaleFactor = CONTENT_WIDTH_MM / (canvas.width / 2);
+      const heightMM = (canvas.height / 2) * scaleFactor;
+      const remainingSpace = A4_HEIGHT_MM - MARGIN_MM - currentY;
+
+      // If section won't fit, start a new page
+      if (heightMM > remainingSpace && !isFirstSection) {
+        pdf.addPage();
+        currentY = MARGIN_MM;
       }
-    });
 
-    // Restore animations
-    animatedElements.forEach((el, index) => {
-      const htmlEl = el as HTMLElement;
-      htmlEl.style.cssText = originalStyles[Object.keys(originalStyles)[index]] || '';
-    });
+      // If a single section is taller than one page, split it across pages
+      const imgData = canvas.toDataURL("image/png");
+      if (heightMM > CONTENT_HEIGHT_MM) {
+        // Render tall section across multiple pages
+        let remainingHeight = heightMM;
+        let srcY = 0;
+        while (remainingHeight > 0) {
+          const sliceHeight = Math.min(CONTENT_HEIGHT_MM - (currentY - MARGIN_MM), remainingHeight);
+          const sliceRatio = sliceHeight / heightMM;
+          const srcSliceHeight = canvas.height * sliceRatio;
 
-    // Get canvas dimensions
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    
-    // Calculate PDF dimensions (A4 size: 210mm x 297mm)
-    const pdfWidth = 210;
-    const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
-    
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: pdfHeight > pdfWidth ? "portrait" : "landscape",
-      unit: "mm",
-      format: "a4",
-    });
+          // Create a slice canvas
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = srcSliceHeight;
+          const ctx = sliceCanvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(canvas, 0, srcY, canvas.width, srcSliceHeight, 0, 0, canvas.width, srcSliceHeight);
+            const sliceData = sliceCanvas.toDataURL("image/png");
+            pdf.addImage(sliceData, "PNG", MARGIN_MM, currentY, CONTENT_WIDTH_MM, sliceHeight);
+          }
 
-    // Add image to PDF
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+          srcY += srcSliceHeight;
+          remainingHeight -= sliceHeight;
+          if (remainingHeight > 0) {
+            pdf.addPage();
+            currentY = MARGIN_MM;
+          } else {
+            currentY += sliceHeight + SECTION_GAP_MM;
+          }
+        }
+      } else {
+        pdf.addImage(imgData, "PNG", MARGIN_MM, currentY, CONTENT_WIDTH_MM, heightMM);
+        currentY += heightMM + SECTION_GAP_MM;
+      }
 
-    // Save the PDF
-    pdf.save(filename);
-
-    // Restore button state
-    if (originalButton) {
-      originalButton.disabled = false;
-      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download h-4 w-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export PDF';
+      isFirstSection = false;
     }
+
+    pdf.save(filename);
   } catch (error) {
     console.error("Error generating PDF:", error);
-    
-    // Restore button state on error
-    const originalButton = document.querySelector(`[data-pdf-export="${elementId}"]`) as HTMLButtonElement;
-    if (originalButton) {
-      originalButton.disabled = false;
-      originalButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download h-4 w-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export PDF';
-    }
-    
-    // Show error message
-    alert("Failed to generate PDF. Please try again or check your browser console for details.");
+    alert("Failed to generate PDF. Please try again.");
   }
 }
 
@@ -318,7 +320,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
             return sections.map((section, i) => {
               if (section.type === "header") {
                 return (
-                  <article key={i} className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
+                  <article key={i} data-pdf-section className="prose prose-stone max-w-none font-body prose-headings:font-display prose-h1:text-3xl prose-h1:text-foreground prose-p:text-foreground/90 text-center">
                     <ReactMarkdown>{section.content}</ReactMarkdown>
                   </article>
                 );
@@ -329,7 +331,7 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
               }
               if (section.type === "days-header") {
                 return (
-                  <div key={i} className="flex items-center gap-2 mt-4 mb-1">
+                  <div key={i} data-pdf-section className="flex items-center gap-2 mt-4 mb-1">
                     <CalendarDays className="h-5 w-5 text-primary" />
                     <h2 className="font-display text-xl font-semibold text-foreground">{section.title}</h2>
                   </div>
