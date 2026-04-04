@@ -1,7 +1,9 @@
 /**
  * Geocoding utility with in-memory + sessionStorage caching.
- * Uses OpenStreetMap Nominatim (free, no API key).
+ * Uses a backend edge function that proxies OpenStreetMap Nominatim.
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 export interface GeoPoint {
   name: string;
@@ -28,6 +30,13 @@ function saveDiskCache(cache: Record<string, { lat: number; lng: number }>) {
   }
 }
 
+/**
+ * Normalize a location string: strip special chars, trim whitespace.
+ */
+function normalize(s?: string): string {
+  return (s || "").replace(/[:\-–—]/g, "").replace(/\s+/g, " ").trim();
+}
+
 export async function geocode(
   name: string,
   countryCode?: string,
@@ -44,24 +53,35 @@ export async function geocode(
     return disk[cacheKey];
   }
 
-  // 3. Fetch from Nominatim
+  // 3. Parse place, city, country from the name (format: "Place, City, Country")
+  const parts = name.split(",").map((p) => p.trim());
+  const place = normalize(parts[0]);
+  const city = normalize(parts[1]);
+  const country = normalize(parts[2]);
+
+  console.log("Geocode input:", { place, city, country, countryCode, raw: name });
+
+  // 4. Call edge function
   try {
-    const cc = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : "";
-    const resp = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1${cc}`,
-      { headers: { "User-Agent": "LovableTravelPlanner/1.0" } },
-    );
-    const data = await resp.json();
-    if (data.length > 0) {
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const result = { lat, lng };
-        memoryCache.set(cacheKey, result);
-        disk[cacheKey] = result;
-        saveDiskCache(disk);
-        return result;
+    const { data, error } = await supabase.functions.invoke("geocode", {
+      body: { place, city, country, countryCode },
+    });
+
+    if (error) {
+      console.warn("[geocode] Edge function error for:", name, error);
+      memoryCache.set(cacheKey, null);
+      return null;
+    }
+
+    if (data && data.lat != null && data.lng != null) {
+      const result = { lat: data.lat, lng: data.lng };
+      memoryCache.set(cacheKey, result);
+      disk[cacheKey] = result;
+      saveDiskCache(disk);
+      if (data.fallback) {
+        console.log("[geocode] Used fallback for:", name);
       }
+      return result;
     }
   } catch (e) {
     console.warn("[geocode] Failed for:", name, e);
@@ -95,12 +115,10 @@ export function extractDayLocations(
     // Bold place names like **Carmel Market** or **Jaffa Old City**
     const boldMatches = line.matchAll(/\*\*([^*]{3,40})\*\*/g);
     for (const m of boldMatches) {
-      const name = m[1].trim();
-      // Skip generic words
-      if (/^(morning|afternoon|evening|lunch|dinner|breakfast|tip|note|option|day|budget|cost)/i.test(name)) continue;
-      // Skip if it looks like a time range
-      if (/^\d{1,2}:\d{2}/.test(name)) continue;
-      locations.push(name);
+      const n = m[1].trim();
+      if (/^(morning|afternoon|evening|lunch|dinner|breakfast|tip|note|option|day|budget|cost)/i.test(n)) continue;
+      if (/^\d{1,2}:\d{2}/.test(n)) continue;
+      locations.push(n);
     }
   }
 
@@ -120,8 +138,8 @@ export function extractDayLocations(
 }
 
 /**
- * Batch geocode with rate limiting (Nominatim: 1 req/sec).
- * Returns resolved points in order.
+ * Batch geocode with small delays between requests.
+ * Edge function handles rate limiting to Nominatim.
  */
 export async function batchGeocode(
   names: string[],
@@ -133,13 +151,13 @@ export async function batchGeocode(
     const coords = await geocode(names[i], countryCode);
     if (coords) {
       points.push({
-        name: names[i].split(",")[0].trim(), // short display name
+        name: names[i].split(",")[0].trim(),
         ...coords,
       });
     }
-    // Nominatim rate limit: 1 req/sec (skip delay for cached results)
+    // Small delay between uncached requests to be nice to the server
     if (i < names.length - 1 && !memoryCache.has(`${names[i + 1]}||${countryCode || ""}`)) {
-      await new Promise((r) => setTimeout(r, 1100));
+      await new Promise((r) => setTimeout(r, 300));
     }
   }
 
