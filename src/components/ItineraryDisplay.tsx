@@ -227,7 +227,7 @@ function SectionCard({ type, title, content }: { type: string; title: string; co
       </div>
       <div className="px-5 py-4">
         <article className="prose prose-sm prose-stone max-w-none font-body prose-headings:font-display prose-p:text-foreground/85 prose-p:leading-relaxed prose-li:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-ul:my-1">
-          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>
         </article>
       </div>
     </motion.div>
