@@ -248,10 +248,17 @@ export default function ItineraryDisplay({ content, isStreaming, onReset }: Itin
   // Extract city/country context from itinerary header for geocoding
   const locationContext = useMemo(() => {
     if (!content) return {};
-    // Look for patterns like "Tel Aviv, Israel" or "Tokyo, Japan" in first few lines
     const header = content.slice(0, 1000);
-    const match = header.match(/(?:to|in|for|exploring)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),?\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/i);
-    if (match) return { city: match[1], country: match[2] };
+    // Match "City, Country" or "City (Region), Country" patterns
+    // Avoid capturing LLM phrases by requiring country to be ≤20 chars and start with uppercase
+    const match = header.match(/(?:to|in|for|exploring|weekend in)\s+([A-Z][a-zà-ü]+(?:\s[A-Z][a-zà-ü]+)*),?\s*([A-Z][a-zà-ü]+(?:\s[A-Z][a-zà-ü]+){0,2})/i);
+    if (match) {
+      const city = match[1].trim();
+      const country = match[2].trim();
+      // Guard: reject country if it looks like an LLM phrase
+      const invalidCountry = /^(designed|known|famous|popular|perfect|ideal|great|built|located)/i.test(country) || country.length > 20;
+      return { city, country: invalidCountry ? undefined : country };
+    }
     return {};
   }, [content]);
 
