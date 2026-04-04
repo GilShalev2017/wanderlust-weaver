@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Locations Function</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .loading { color: blue; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test AI Locations Extraction</h1>
+    
+    <div>
+        <h3>Sample Day Content:</h3>
+        <textarea id="dayContent" rows="10" cols="80">
+**Day 1 – Arrival in Tel Aviv**
+
+**Location/City:** Tel Aviv, Israel
+
+**Morning:** Arrive at Ben Gurion Airport, transfer to hotel in **Carmel Market** area
+
+**Afternoon:** Explore **Jaffa Old City**, visit **Jaffa Port** and **Old Jaffa Museum**
+
+**Evening:** Dinner at **Carmel Market**, walk along **Tel Aviv Beach Promenade**
+
+**Accommodation:** Near **Rothschild Boulevard**
+        </textarea>
+    </div>
+    
+    <div>
+        <label>City Context: <input type="text" id="cityContext" value="Tel Aviv"></label><br>
+        <label>Country: <input type="text" id="country" value="Israel"></label><br>
+        <label>Country Code: <input type="text" id="countryCode" value="IL"></label><br>
+    </div>
+    
+    <button onclick="testFunction()">Test AI Locations</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testFunction() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">Testing AI function...</div>';
+            
+            try {
+                const response = await fetch('https://mbfxkawbiyaenlnrduuv.supabase.co/functions/v1/ai-locations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZnhrYXdiaXlhZW5sbnJkdXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzY1MDcsImV4cCI6MjA5MDQ1MjUwN30.DY_eR3Cy4oTUQWHzbN4fBYvX_l-uQw7wz3y_isQJgcQ'
+                    },
+                    body: JSON.stringify({
+                        dayContent: document.getElementById('dayContent').value,
+                        cityContext: document.getElementById('cityContext').value,
+                        country: document.getElementById('country').value,
+                        countryCode: document.getElementById('countryCode').value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Success! Found ${data.locations.length} locations:</div>
+                        ${data.locations.map((loc, i) => `
+                            <div class="result">
+                                <strong>${i + 1}. ${loc.name}</strong><br>
+                                Lat: ${loc.lat}, Lng: ${loc.lng}
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -121,60 +121,38 @@ function isValidPlace(place: string): boolean {
 }
 
 /**
- * Extracts location names from a day's markdown content.
- * Looks for Location/City tags, bold place names, and contextual headers.
+ * Extract locations and geocode them using AI in a single step.
+ * Uses Gemini 2.5 Flash to understand context and provide coordinates.
  */
-export function extractDayLocations(
+export async function extractAndGeocodeLocations(
   dayContent: string,
   cityContext?: string,
   country?: string,
-): string[] {
-  const locations: string[] = [];
-  const lines = dayContent.split("\n");
-
-  for (const line of lines) {
-    // "Location/City: ..." or "**Location:** ..."
-    const locMatch = line.match(/\*?\*?(?:Location(?:\/City)?|Place|Venue)\*?\*?:\s*(.+)/i);
-    if (locMatch) {
-      const clean = locMatch[1].replace(/[*_`]/g, "").split(/[/,&–—-]/)[0].trim();
-      if (clean.length > 2 && clean.length < 60) locations.push(clean);
-      continue;
-    }
-
-    // Bold place names like **Carmel Market** or **Jaffa Old City**
-    const boldMatches = line.matchAll(/\*\*([^*]{3,40})\*\*/g);
-    for (const m of boldMatches) {
-      const n = m[1].trim();
-      if (/^(morning|afternoon|evening|lunch|dinner|breakfast|tip|note|option|day|budget|cost)/i.test(n)) continue;
-      if (/^\d{1,2}:\d{2}/.test(n)) continue;
-      locations.push(n);
-    }
-  }
-
-  // Deduplicate
-  const unique = [...new Set(locations)];
-
-  // Filter out non-location entries
-  const filtered = unique.filter((loc) => {
-    const valid = isValidPlace(loc);
-    if (!valid) {
-      console.log("[geocode] Filtered out invalid place:", loc);
-    }
-    return valid;
-  });
-
-  console.log("[geocode] Extracted locations for geocoding:", filtered);
-
-  // Qualify with city context
-  if (cityContext) {
-    return filtered.map((loc) => {
-      if (loc.toLowerCase().includes(cityContext.toLowerCase())) return loc;
-      const suffix = country ? `, ${cityContext}, ${country}` : `, ${cityContext}`;
-      return `${loc}${suffix}`;
+  countryCode?: string,
+): Promise<GeoPoint[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("ai-locations", {
+      body: { dayContent, cityContext, country, countryCode },
     });
-  }
 
-  return filtered;
+    if (error) {
+      console.warn("[extractAndGeocodeLocations] Edge function error:", error);
+      return [];
+    }
+
+    if (data && data.locations && Array.isArray(data.locations)) {
+      return data.locations.map((loc: any) => ({
+        name: loc.name || "Unknown Location",
+        lat: loc.lat,
+        lng: loc.lng,
+      }));
+    }
+
+    return [];
+  } catch (e) {
+    console.warn("[extractAndGeocodeLocations] Failed:", e);
+    return [];
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { extractDayLocations, batchGeocode, type GeoPoint } from "@/lib/geocoding";
+import { extractAndGeocodeLocations, type GeoPoint } from "@/lib/geocoding";
 
 // Lazy-load the heavy Leaflet map renderer
 const LeafletMap = lazy(() => import("./LeafletMapRenderer"));
@@ -24,14 +24,8 @@ export default function DayMap({ dayContent, dayNumber, cityContext, country, co
   useEffect(() => {
     if (!expanded || geocoded || loading) return;
 
-    const locations = extractDayLocations(dayContent, cityContext, country);
-    if (locations.length === 0) {
-      setGeocoded(true);
-      return;
-    }
-
     setLoading(true);
-    batchGeocode(locations, countryCode).then((pts) => {
+    extractAndGeocodeLocations(dayContent, cityContext, country, countryCode).then((pts) => {
       setPoints(pts);
       setGeocoded(true);
       setLoading(false);
