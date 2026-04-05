@@ -24,18 +24,17 @@ Four specialized AI agents work sequentially to build comprehensive travel plans
 
 ### 🗺️ Interactive Maps
 - Day-by-day interactive maps powered by **Leaflet** and **React Leaflet**
-- Geocoded locations displayed with markers for each activity
-- Visual route overview across the full itinerary
+- AI-powered location extraction and geocoding via edge function
+- Visual markers for each activity within a day
 
 ### 💰 Budget Estimates
-- Styled budget breakdown card with formatted tables
+- Styled budget breakdown card with formatted tables (GFM markdown)
 - Highlighted totals and per-category cost breakdowns
 - Supports multiple currencies
 
 ### 📱 Responsive Design
 - Fully responsive layout optimized for desktop and mobile
 - Animated transitions using **Framer Motion**
-- Dark/light theme support via CSS custom properties
 
 ### ⚠️ Error Handling
 - Friendly UI messages for AI credit exhaustion (402 errors)
@@ -67,15 +66,15 @@ src/
 │   ├── TripInput.tsx          # Main input with voice support
 │   ├── AgentProgress.tsx      # Pipeline stage progress indicator
 │   ├── ItineraryDisplay.tsx   # Itinerary renderer with Budget card
-│   ├── ItineraryMap.tsx       # Full itinerary map view
 │   ├── DayMap.tsx             # Per-day map component
-│   └── LeafletMapRenderer.tsx # Map rendering utilities
+│   ├── LeafletMapRenderer.tsx # Map rendering utilities
+│   └── NavLink.tsx            # Navigation link component
 ├── hooks/
 │   ├── use-speech-recognition.ts  # Web Speech API hook
 │   └── use-mobile.tsx             # Responsive breakpoint hook
 ├── lib/
 │   ├── agents.ts              # Multi-agent pipeline orchestration
-│   ├── geocoding.ts           # Location geocoding utilities
+│   ├── geocoding.ts           # AI-powered location extraction & geocoding
 │   └── utils.ts               # Shared utilities
 ├── pages/
 │   ├── Index.tsx              # Main application page
@@ -88,8 +87,7 @@ supabase/functions/
 ├── travel-plan/               # Planning agent edge function
 ├── travel-detail/             # Detail agent edge function
 ├── travel-review/             # Review agent edge function
-├── ai-locations/              # Location extraction from itinerary
-└── geocode/                   # Geocoding edge function
+└── ai-locations/              # AI-powered location extraction & geocoding
 ```
 
 ---
@@ -119,7 +117,7 @@ The app will be available at `http://localhost:5173`.
 
 ### Environment Variables
 
-The following environment variables are configured automatically via Lovable Cloud:
+The following environment variables are configured automatically via Lovable Cloud and stored in the `.env` file (auto-generated, do not edit manually):
 
 | Variable | Description |
 |----------|-------------|
@@ -127,9 +125,13 @@ The following environment variables are configured automatically via Lovable Clo
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public API key |
 | `VITE_SUPABASE_PROJECT_ID` | Project identifier |
 
+> **Note:** When running via Lovable, the `.env` file is managed automatically. No manual configuration is needed.
+
 ---
 
 ## 🧪 Testing
+
+The project includes a test infrastructure setup (Vitest + Testing Library + Playwright) but does not yet have meaningful test coverage. Tests are planned for future development.
 
 ```bash
 # Run unit tests
