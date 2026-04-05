@@ -70,7 +70,7 @@ export default function Index() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-10"
+            className="text-center mb-6"
           >
             <div className="inline-flex items-center gap-2 text-primary font-body text-sm font-medium tracking-wider uppercase mb-4">
               <span className="w-8 h-px bg-primary" />
@@ -95,7 +95,7 @@ export default function Index() {
       </header>
 
       {/* Agent Progress + Itinerary */}
-      <main className="container mx-auto px-4 pb-20">
+      <main className="container mx-auto px-4 pb-6">
         {(state === "processing" || state === "done") && (
           <>
             <AgentProgress currentStage={stage} />
@@ -111,7 +111,7 @@ export default function Index() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6">
+      <footer className="border-t border-border py-3">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-body text-muted-foreground">
             Built with a multi-agent pipeline: Research → Planning → Detail → Review

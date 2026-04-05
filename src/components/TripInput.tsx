@@ -53,7 +53,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
             value={isListening ? request + (interimText ? (request ? " " : "") + interimText : "") : request}
             onChange={(e) => setRequest(e.target.value)}
             placeholder="Describe your dream trip..."
-            rows={4}
+            rows={3}
             disabled={isLoading}
             dir={lang === "he-IL" ? "rtl" : "ltr"}
             className="w-full rounded-lg border border-border bg-card p-4 pr-24 font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none shadow-soft transition-shadow focus:shadow-card disabled:opacity-50"
@@ -120,7 +120,7 @@ export default function TripInput({ onSubmit, isLoading }: TripInputProps) {
         </motion.div>
       </form>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-3 space-y-1.5">
         <p className="text-xs font-body text-muted-foreground uppercase tracking-wider">Try a sample request</p>
         <div className="flex flex-col gap-2">
           {SAMPLE_TRIPS.map((trip, i) => (

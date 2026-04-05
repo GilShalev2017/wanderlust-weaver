@@ -25,7 +25,7 @@ export default function AgentProgress({ currentStage }: AgentProgressProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-2xl mx-auto my-8"
+      className="w-full max-w-2xl mx-auto my-4"
     >
       <div className="flex items-center justify-between gap-2">
         {AGENTS.map((agent, i) => {
