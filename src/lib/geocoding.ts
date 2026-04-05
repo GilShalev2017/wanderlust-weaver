@@ -33,11 +33,20 @@ export async function extractAndGeocodeLocations(
     }
 
     if (data && data.locations && Array.isArray(data.locations)) {
-      return data.locations.map((loc: any) => ({
-        name: loc.name || "Unknown Location",
-        lat: loc.lat,
-        lng: loc.lng,
-      }));
+      return data.locations
+        .filter((loc: any) =>
+          loc &&
+          typeof loc.lat === "number" &&
+          typeof loc.lng === "number" &&
+          isFinite(loc.lat) &&
+          isFinite(loc.lng) &&
+          !(loc.lat === 0 && loc.lng === 0)
+        )
+        .map((loc: any) => ({
+          name: loc.name || "Unknown Location",
+          lat: loc.lat,
+          lng: loc.lng,
+        }));
     }
 
     return [];
