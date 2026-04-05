@@ -37,10 +37,9 @@ Deno.test("travel-research: handles empty request gracefully", async () => {
   });
 
   // Should still return 200 (AI will handle empty input)
-  const data = await response.json();
   assertEquals(response.status, 200);
+  const data = await response.json();
   assert(typeof data.result === "string");
-  await response.body?.cancel();
 });
 
 Deno.test("travel-research: CORS preflight returns OK", async () => {
