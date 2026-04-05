@@ -211,11 +211,12 @@ export default function LeafletMapRenderer({ points, dayNumber }: LeafletMapRend
         />
         {points.map((point, i) => (
           <Marker key={i} position={[point.lat, point.lng]} icon={createNumberIcon(i + 1, color)}>
-            <Popup minWidth={180} maxWidth={240}>
+            <Popup minWidth={180} maxWidth={260}>
               <div className="text-center">
                 <strong className="text-sm block">Stop {i + 1}</strong>
-                <span className="text-xs text-gray-600 block mb-1">{point.name}</span>
+                <span className="text-xs text-muted-foreground block mb-1">{point.name}</span>
                 <WikiImage name={point.name} />
+                <CommonsGeoImage lat={point.lat} lng={point.lng} name={point.name} />
               </div>
             </Popup>
           </Marker>
