@@ -64,6 +64,57 @@ function FitBounds({ points }: { points: GeoPoint[] }) {
   return null;
 }
 
+/** Fetches a thumbnail from Wikimedia Commons using coordinate-based geo-search */
+function CommonsGeoImage({ lat, lng, name }: { lat: number; lng: number; name: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "done" | "none">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const url = `https://commons.wikimedia.org/w/api.php?` +
+      `action=query&generator=geosearch&ggsprimary=all&ggsnamespace=6` +
+      `&ggsradius=500&ggscoord=${lat}|${lng}&ggslimit=5` +
+      `&prop=imageinfo&iiprop=url&iiurlwidth=300` +
+      `&format=json&origin=*`;
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const pages = data?.query?.pages;
+        if (!pages) { setStatus("none"); return; }
+
+        // Find first page with a usable thumbnail
+        const pageList = Object.values(pages) as any[];
+        for (const page of pageList) {
+          const thumb = page?.imageinfo?.[0]?.thumburl;
+          if (thumb) {
+            setSrc(thumb);
+            setStatus("done");
+            return;
+          }
+        }
+        setStatus("none");
+      })
+      .catch(() => { if (!cancelled) setStatus("none"); });
+
+    return () => { cancelled = true; };
+  }, [lat, lng, name]);
+
+  if (status === "loading") return null; // silent loading, Wikipedia shows its own loader
+  if (status === "none" || !src) return null;
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className="w-full max-h-[100px] object-cover rounded mt-1"
+      loading="lazy"
+    />
+  );
+}
+
 /** Fetches a thumbnail from Wikipedia for a given place name */
 function WikiImage({ name }: { name: string }) {
   const [src, setSrc] = useState<string | null>(null);
