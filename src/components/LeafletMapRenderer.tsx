@@ -79,7 +79,7 @@ export default function LeafletMapRenderer({ points, dayNumber, cityContext, cou
   const polylinePositions = points.map((p) => [p.lat, p.lng] as [number, number]);
 
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-[400px] w-full">
       <MapContainer
         center={[points[0].lat, points[0].lng]}
         zoom={14}
