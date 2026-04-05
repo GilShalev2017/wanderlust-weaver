@@ -77,7 +77,7 @@ export default function Index() {
               AI-Powered Multi-Agent
               <span className="w-8 h-px bg-primary" />
             </div>
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight mb-4">
+            <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-2">
               Travel Planner
             </h1>
             <p className="font-body text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
