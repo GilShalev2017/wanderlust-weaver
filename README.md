@@ -163,7 +163,7 @@ The project has comprehensive test coverage across three layers:
 
 ```bash
 # Frontend unit & component tests (fast, no AI credits)
-bun run vitest run
+npx vitest run
 
 # All Deno edge function unit tests (uses AI credits)
 deno test --allow-net --allow-env --allow-read supabase/functions/
@@ -175,7 +175,7 @@ deno test --allow-net --allow-env --allow-read supabase/functions/travel-researc
 deno test --allow-net --allow-env --allow-read supabase/functions/integration.test.ts
 
 # Playwright E2E tests (uses AI credits, ~3 min)
-bunx playwright test e2e/
+npx playwright test e2e/
 ```
 
 > ⚠️ **Note:** Deno and Playwright tests call real deployed edge functions and consume AI credits. Frontend Vitest tests are fully mocked and free to run.
