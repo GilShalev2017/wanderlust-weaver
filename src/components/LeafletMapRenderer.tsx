@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -19,14 +19,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// Color palette for markers (cycles through)
 const MARKER_COLORS = [
-  "hsl(24, 70%, 45%)",   // warm orange (primary)
-  "hsl(200, 65%, 45%)",  // blue
-  "hsl(150, 55%, 40%)",  // green
-  "hsl(280, 55%, 50%)",  // purple
-  "hsl(350, 65%, 50%)",  // red
-  "hsl(45, 75%, 45%)",   // gold
+  "hsl(24, 70%, 45%)",
+  "hsl(200, 65%, 45%)",
+  "hsl(150, 55%, 40%)",
+  "hsl(280, 55%, 50%)",
+  "hsl(350, 65%, 50%)",
+  "hsl(45, 75%, 45%)",
 ];
 
 function createNumberIcon(num: number, color: string) {
@@ -65,6 +64,77 @@ function FitBounds({ points }: { points: GeoPoint[] }) {
   return null;
 }
 
+/** Fetches a thumbnail from Wikipedia for a given place name */
+function WikiImage({ name }: { name: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "done" | "none">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    const query = encodeURIComponent(name);
+
+    fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${query}`,
+      { headers: { "Api-User-Agent": "LovableTravelPlanner/1.0" } }
+    )
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (cancelled) return;
+        const thumb = data?.thumbnail?.source;
+        if (thumb) {
+          setSrc(thumb);
+          setStatus("done");
+        } else {
+          // Fallback: try search endpoint
+          return fetch(
+            `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${query}&format=json&origin=*&srlimit=1`
+          )
+            .then((r) => r.json())
+            .then((sr) => {
+              if (cancelled) return;
+              const title = sr?.query?.search?.[0]?.title;
+              if (!title) { setStatus("none"); return; }
+              return fetch(
+                `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+                { headers: { "Api-User-Agent": "LovableTravelPlanner/1.0" } }
+              )
+                .then((r) => (r.ok ? r.json() : null))
+                .then((d) => {
+                  if (cancelled) return;
+                  if (d?.thumbnail?.source) {
+                    setSrc(d.thumbnail.source);
+                    setStatus("done");
+                  } else {
+                    setStatus("none");
+                  }
+                });
+            });
+        }
+      })
+      .catch(() => { if (!cancelled) setStatus("none"); });
+
+    return () => { cancelled = true; };
+  }, [name]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center h-16 text-xs text-gray-400">
+        Loading image…
+      </div>
+    );
+  }
+  if (status === "none" || !src) return null;
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className="w-full max-h-[140px] object-cover rounded mt-1"
+      loading="lazy"
+    />
+  );
+}
+
 interface LeafletMapRendererProps {
   points: GeoPoint[];
   dayNumber: number;
@@ -90,10 +160,12 @@ export default function LeafletMapRenderer({ points, dayNumber }: LeafletMapRend
         />
         {points.map((point, i) => (
           <Marker key={i} position={[point.lat, point.lng]} icon={createNumberIcon(i + 1, color)}>
-            <Popup>
-              <strong className="text-sm">Stop {i + 1}</strong>
-              <br />
-              <span className="text-xs">{point.name}</span>
+            <Popup minWidth={180} maxWidth={240}>
+              <div className="text-center">
+                <strong className="text-sm block">Stop {i + 1}</strong>
+                <span className="text-xs text-gray-600 block mb-1">{point.name}</span>
+                <WikiImage name={point.name} />
+              </div>
             </Popup>
           </Marker>
         ))}
