@@ -24,8 +24,12 @@ Four specialized AI agents work sequentially to build comprehensive travel plans
 
 ### 🗺️ Interactive Maps
 - Day-by-day interactive maps powered by **Leaflet** and **React Leaflet**
-- AI-powered location extraction and geocoding via edge function
-- Visual markers for each activity within a day
+- AI-powered location extraction and geocoding via edge function (Gemini)
+- Numbered markers with sequential indexing (invalid coordinates are filtered)
+- **Dual-source image viewer** in marker popups:
+  - **Wikipedia REST API** — Fetches thumbnail by article name with city/country context for accuracy
+  - **Wikimedia Commons Geo-Search** — Fetches nearby photos by coordinates (500m radius)
+  - Image carousel with navigation arrows and source badge ("Wikipedia" / "Commons")
 
 ### 💰 Budget Estimates
 - Styled budget breakdown card with formatted tables (GFM markdown)
@@ -67,7 +71,8 @@ src/
 │   ├── AgentProgress.tsx      # Pipeline stage progress indicator
 │   ├── ItineraryDisplay.tsx   # Itinerary renderer with Budget card
 │   ├── DayMap.tsx             # Per-day map component
-│   ├── LeafletMapRenderer.tsx # Map rendering utilities
+│   ├── LeafletMapRenderer.tsx # Map rendering with Leaflet
+│   ├── MarkerPopup.tsx        # Popup with dual-source image viewer
 │   └── NavLink.tsx            # Navigation link component
 ├── hooks/
 │   ├── use-speech-recognition.ts  # Web Speech API hook
@@ -86,8 +91,11 @@ supabase/functions/
 ├── travel-research/           # Research agent edge function
 ├── travel-plan/               # Planning agent edge function
 ├── travel-detail/             # Detail agent edge function
-├── travel-review/             # Review agent edge function
+├── travel-review/             # Review agent (streaming) edge function
 └── ai-locations/              # AI-powered location extraction & geocoding
+
+e2e/
+└── travel-planner.spec.ts     # Playwright E2E tests
 ```
 
 ---
@@ -131,15 +139,46 @@ The following environment variables are configured automatically via Lovable Clo
 
 ## 🧪 Testing
 
-The project includes a test infrastructure setup (Vitest + Testing Library + Playwright) but does not yet have meaningful test coverage. Tests are planned for future development.
+The project has comprehensive test coverage across three layers:
+
+### Test Libraries
+
+| Library | Purpose |
+|---------|---------|
+| **Vitest** + **@testing-library/react** | Frontend unit & component tests |
+| **Deno built-in test runner** | Edge function unit & integration tests |
+| **Playwright** | End-to-end browser tests |
+
+### Test Inventory
+
+| Layer | Files | Tests | Description |
+|-------|-------|-------|-------------|
+| **Edge Function Unit** | 5 | 9 | Each of the 5 edge functions tested individually (real AI calls) |
+| **Pipeline Integration** | 1 | 1 | Full research → plan → detail → review chain |
+| **Frontend Unit** | 4 | 15 | `agents.ts`, `geocoding.ts`, components (mocked) |
+| **Component** | 2 | 9 | `AgentProgress`, `TripInput` rendering & interaction |
+| **E2E** | 1 | 3 | Full browser flow: input → agents → results → reset |
+
+### Running Tests
 
 ```bash
-# Run unit tests
-bun run test
+# Frontend unit & component tests (fast, no AI credits)
+bun run vitest run
 
-# Run end-to-end tests
-bunx playwright test
+# All Deno edge function unit tests (uses AI credits)
+deno test --allow-net --allow-env --allow-read supabase/functions/
+
+# Single edge function test
+deno test --allow-net --allow-env --allow-read supabase/functions/travel-research/
+
+# Full pipeline integration test (uses more AI credits)
+deno test --allow-net --allow-env --allow-read supabase/functions/integration.test.ts
+
+# Playwright E2E tests (uses AI credits, ~3 min)
+bunx playwright test e2e/
 ```
+
+> ⚠️ **Note:** Deno and Playwright tests call real deployed edge functions and consume AI credits. Frontend Vitest tests are fully mocked and free to run.
 
 ---
 
