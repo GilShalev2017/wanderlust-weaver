@@ -76,7 +76,7 @@ export default function DayMap({ dayContent, dayNumber, cityContext, country, co
                   </div>
                 }
               >
-                <LeafletMap points={points} dayNumber={dayNumber} />
+                <LeafletMap points={points} dayNumber={dayNumber} cityContext={cityContext} country={country} />
               </Suspense>
             )}
           </motion.div>
