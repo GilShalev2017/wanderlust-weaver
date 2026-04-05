@@ -65,19 +65,19 @@ export default function Index() {
           <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 pt-16 pb-12 md:pt-24 md:pb-20">
+        <div className="relative z-10 container mx-auto px-4 pt-8 pb-6 md:pt-12 md:pb-8">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-10"
+            className="text-center mb-6"
           >
             <div className="inline-flex items-center gap-2 text-primary font-body text-sm font-medium tracking-wider uppercase mb-4">
               <span className="w-8 h-px bg-primary" />
               AI-Powered Multi-Agent
               <span className="w-8 h-px bg-primary" />
             </div>
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight mb-4">
+            <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-2">
               Travel Planner
             </h1>
             <p className="font-body text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
@@ -95,7 +95,7 @@ export default function Index() {
       </header>
 
       {/* Agent Progress + Itinerary */}
-      <main className="container mx-auto px-4 pb-20">
+      <main className="container mx-auto px-4 pb-6">
         {(state === "processing" || state === "done") && (
           <>
             <AgentProgress currentStage={stage} />
@@ -111,7 +111,7 @@ export default function Index() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6">
+      <footer className="border-t border-border py-3">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-body text-muted-foreground">
             Built with a multi-agent pipeline: Research → Planning → Detail → Review
