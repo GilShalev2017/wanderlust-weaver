@@ -116,13 +116,13 @@ git clone <repository-url>
 cd global-e-travel-planner
 
 # Install dependencies
-bun install
+npm install
 
 # Start the development server
-bun run dev
+npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+The app will be available at `http://localhost:8080`.
 
 ### Environment Variables
 
@@ -176,35 +176,14 @@ deno test --allow-net --allow-env --allow-read supabase/functions/travel-researc
 deno test --allow-net --allow-env --allow-read supabase/functions/integration.test.ts
 
 # Playwright E2E tests (uses AI credits, ~3 min)
-npx playwright install --with-deps chromium
+npx playwright install chromium
 npx playwright test e2e/
 ```
 
 > ⚠️ **Local environment notes:**
-> - **Deno tests** require [Deno](https://deno.land/) to be installed. Alternatively, these tests run automatically in the Lovable sandbox using the built-in test runner.
-> - **Playwright** requires a one-time browser install (`npx playwright install --with-deps chromium`).
-> - The Playwright config in the repo uses a Lovable-internal package. For running locally, create a standalone `playwright.config.local.ts` (see below).
-
-#### Local Playwright Config
-
-If you're running E2E tests outside the Lovable sandbox, create `playwright.config.local.ts`:
-
-```typescript
-import { defineConfig } from "@playwright/test";
-
-export default defineConfig({
-  testDir: "./e2e",
-  timeout: 200_000,
-  use: {
-    baseURL: "http://localhost:5173",
-    headless: true,
-  },
-});
-```
-
-Then run with: `npx playwright test --config playwright.config.local.ts`
-
-> ⚠️ **Note:** Deno and Playwright tests call real deployed edge functions and consume AI credits. Frontend Vitest tests are fully mocked and free to run.
+> - **Deno tests** require [Deno](https://deno.land/) to be installed and in your PATH. On Windows, you may need to use the full path (e.g., `& "$env:USERPROFILE\.deno\bin\deno.exe"`).
+> - **Playwright** requires a one-time browser install (`npx playwright install chromium`). Only Chromium is configured by default.
+> - Deno and Playwright tests call real deployed edge functions and consume AI credits. Frontend Vitest tests are fully mocked and free to run.
 
 ---
 
