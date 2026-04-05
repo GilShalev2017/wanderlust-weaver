@@ -169,7 +169,7 @@ function WikiImage({ name }: { name: string }) {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center justify-center h-16 text-xs text-gray-400">
+      <div className="flex items-center justify-center h-16 text-xs text-muted-foreground">
         Loading image…
       </div>
     );
