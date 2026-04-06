@@ -72,8 +72,7 @@ src/
 │   ├── ItineraryDisplay.tsx   # Itinerary renderer with Budget card
 │   ├── DayMap.tsx             # Per-day map component
 │   ├── LeafletMapRenderer.tsx # Map rendering with Leaflet
-│   ├── MarkerPopup.tsx        # Popup with dual-source image viewer
-│   └── NavLink.tsx            # Navigation link component
+│   └── MarkerPopup.tsx        # Popup with dual-source image viewer
 ├── hooks/
 │   ├── use-speech-recognition.ts  # Web Speech API hook
 │   └── use-mobile.tsx             # Responsive breakpoint hook
